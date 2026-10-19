@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Astro Party Clone</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: #000000;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Courier New', Courier, monospace;
+    }
+    #gameWrapper {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #000;
+    }
+    #gameCanvas {
+      display: block;
+      background: #000000;
+      box-shadow: 0 0 40px rgba(0, 240, 255, 0.15);
+      image-rendering: pixelated;
+    }
+  </style>
+</head>
+<body>
+  <div id="gameWrapper">
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // =========================================================
+      // 1. SOUND SYNTHESIZER (WEB AUDIO API)
+      // =========================================================
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      function playTone(freq, type, duration, endFreq = null, vol = 0.1) {
+        if (!audioCtx) return;
+        try {
+          if (audioCtx.state === 'suspended') audioCtx.resume();
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+          if (endFreq !== null) {
+            osc.frequency.exponentialRampToValueAtTime(Math.max(10, endFreq), audioCtx.currentTime + duration);
+          }
+          gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + duration);
+        } catch (_) {}
+      }
+
+      function sfxLaser() { playTone(880, 'sawtooth', 0.12, 110, 0.15); }
+      function sfxExplosion() {
+        if (!audioCtx) return;
+        try {
+          if (audioCtx.state === 'suspended') audioCtx.resume();
+          const bufferSize = audioCtx.sampleRate * 0.25;
+          const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+          const noise = audioCtx.createBufferSource();
+          noise.buffer = buffer;
+          const filter = audioCtx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(800, audioCtx.currentTime);
+          filter.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.25);
+          const gain = audioCtx.createGain();
+          gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(audioCtx.destination);
+          noise.start();
+        } catch (_) {}
+      }
+      function sfxBounce() { playTone(520, 'sine', 0.08, 260, 0.12); }
+      function sfxBreak() { playTone(300, 'square', 0.1, 80, 0.15); }
+      function sfxRoundWin() { playTone(440, 'triangle', 0.4, 880, 0.2); }
+
+      // =========================================================
+      // 2. CONSTANTS & CONFIGURATION
+      // =========================================================
+      const V_WIDTH = 800;
+      const V_HEIGHT = 600;
+      const SHIP_SPEED = 180; // px/sec
+      const SHIP_ROT_SPEED = 5.6; // rad/sec (Clockwise only)
+      const BULLET_SPEED = SHIP_SPEED * 3.2; // ~576 px/sec
+      const BULLET_MAX_DIST = V_WIDTH * 1.5; // 1200 px
+      const BULLET_MAX_LIFE = 2.5; // sec
+      const PILOT_SPEED = 42; // px/sec
+      const PILOT_ROT_SPEED = 5.2; // rad/sec
+      const POINTS_TO_WIN = 5;
+
+      const PLAYER_CONFIGS = [
+        { id: 1, name: 'P1', color: '#00f0ff', glow: '#00f0ff', rotateKey: 'ArrowLeft', shootKey: 'ArrowRight' },
+        { id: 2, name: 'P2', color: '#ff007f', glow: '#ff007f', rotateKey: 'KeyA', shootKey: 'KeyD' },
+        { id: 3, name: 'P3', color: '#00ff66', glow: '#00ff66', rotateKey: 'KeyG', shootKey: 'KeyH' },
+        { id: 4, name: 'P4', color: '#ffff00', glow: '#ffff00', rotateKey: 'KeyJ', shootKey: 'KeyK' }
+      ];
+
+      // =========================================================
+      // 3. KEYBOARD INPUT MANAGER
+      // =========================================================
+      const keysDown = new Set();
+      const keysJustPressed = new Set();
+
+      window.addEventListener('keydown', (e) => {
+        if (!keysDown.has(e.code)) {
+          keysJustPressed.add(e.code);
+        }
+        keysDown.add(e.code);
+        if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+          e.preventDefault();
+        }
+      });
+
+      window.addEventListener('keyup', (e) => {
+        keysDown.delete(e.code);
+      });
+
+      // =========================================================
+      // 4. PARTICLE ENGINE & SCREEN SHAKE
+      // =========================================================
+      const particles = [];
+      let screenShakeTime = 0;
+      let screenShakeIntensity = 0;
+
+      function spawnParticles(x, y, count, color, minSpd = 40, maxSpd = 260, size = 2.5, life = 0.5) {
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const spd = minSpd + Math.random() * (maxSpd - minSpd);
+          particles.push({
+            x, y,
+            vx: Math.cos(angle) * spd,
+            vy: Math.sin(angle) * spd,
+            color,
+            size: size * (0.6 + Math.random() * 0.8),
+            maxLife: life * (0.6 + Math.random() * 0.8),
+            life: 0
+          });
+        }
+      }
+
+      function triggerScreenShake(time = 0.2, intensity = 9) {
+        screenShakeTime = time;
+        screenShakeIntensity = intensity;
+      }
+
+      // =========================================================
+      // 5. GAME ENTITIES (SHIP, BULLET, PILOT, BLOCK)
+      // =========================================================
+      class Bullet {
+        constructor(playerId, x, y, angle, color) {
+          this.playerId = playerId;
+          this.x = x;
+          this.y = y;
+          this.vx = Math.cos(angle) * BULLET_SPEED;
+          this.vy = Math.sin(angle) * BULLET_SPEED;
+          this.color = color;
+          this.traveled = 0;
+          this.life = 0;
+          this.dead = false;
+          this.bounces = 0;
+        }
+
+        update(dt) {
+          const dx = this.vx * dt;
+          const dy = this.vy * dt;
+          this.x += dx;
+          this.y += dy;
+          this.traveled += Math.hypot(dx, dy);
+          this.life += dt;
+
+          if (this.traveled >= BULLET_MAX_DIST || this.life >= BULLET_MAX_LIFE) {
+            this.dead = true;
+          }
+
+          // Universal Screen Wrapping
+          if (this.x < 0) this.x += V_WIDTH;
+          else if (this.x > V_WIDTH) this.x -= V_WIDTH;
+          if (this.y < 0) this.y += V_HEIGHT;
+          else if (this.y > V_HEIGHT) this.y -= V_HEIGHT;
+        }
+
+        draw(ctx) {
+          ctx.save();
+          ctx.strokeStyle = this.color;
+          ctx.shadowColor = this.color;
+          ctx.shadowBlur = 10;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          const tailLen = 14;
+          const speed = Math.hypot(this.vx, this.vy);
+          const nx = (this.vx / speed) * tailLen;
+          const ny = (this.vy / speed) * tailLen;
+          ctx.moveTo(this.x, this.y);
+          ctx.lineTo(this.x - nx, this.y - ny);
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      class Pilot {
+        constructor(playerId, x, y, angle, color) {
+          this.playerId = playerId;
+          this.x = x;
+          this.y = y;
+          this.angle = angle;
+          this.color = color;
+          this.radius = 5;
+          // Ejection boost
+          const ejectAngle = angle + Math.PI + (Math.random() - 0.5) * 0.4;
+          this.vx = Math.cos(ejectAngle) * 140;
+          this.vy = Math.sin(ejectAngle) * 140;
+          this.dead = false;
+        }
+
+        update(dt, isRotating) {
+          if (this.dead) return;
+
+          // Right turn only
+          if (isRotating) {
+            this.angle += PILOT_ROT_SPEED * dt;
+          }
+
+          // Slow drift forward with heavy inertia friction
+          this.vx += (Math.cos(this.angle) * PILOT_SPEED - this.vx) * (dt * 3.5);
+          this.vy += (Math.sin(this.angle) * PILOT_SPEED - this.vy) * (dt * 3.5);
+
+          this.x += this.vx * dt;
+          this.y += this.vy * dt;
+
+          // Universal Screen Wrapping
+          if (this.x < 0) this.x += V_WIDTH;
+          else if (this.x > V_WIDTH) this.x -= V_WIDTH;
+          if (this.y < 0) this.y += V_HEIGHT;
+          else if (this.y > V_HEIGHT) this.y -= V_HEIGHT;
+        }
+
+        draw(ctx) {
+          if (this.dead) return;
+          ctx.save();
+          ctx.translate(this.x, this.y);
+          ctx.rotate(this.angle);
+
+          // Tiny astronaut pilot
+          ctx.fillStyle = '#ffffff';
+          ctx.shadowColor = '#ffffff';
+          ctx.shadowBlur = 6;
+          ctx.beginPath();
+          ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Visor
+          ctx.fillStyle = this.color;
+          ctx.fillRect(1, -2, 3, 4);
+
+          ctx.restore();
+        }
+      }
+
+      class Ship {
+        constructor(config, spawnX, spawnY, spawnAngle) {
+          this.config = config;
+          this.id = config.id;
+          this.x = spawnX;
+          this.y = spawnY;
+          this.angle = spawnAngle;
+          this.radius = 13;
+          this.color = config.color;
+          this.glow = config.glow;
+          this.recoilTime = 0;
+          this.isDestroyed = false;
+          this.pilot = null;
+        }
+
+        update(dt, isRotating, justShoot, activeBulletsCount, addBulletCallback) {
+          if (this.isDestroyed) {
+            if (this.pilot) {
+              this.pilot.update(dt, isRotating);
+            }
+            return;
+          }
+
+          // The "Right-Turn Only" Constraint: No left turn logic!
+          if (isRotating) {
+            this.angle += SHIP_ROT_SPEED * dt;
+            // Thruster sparks while turning
+            const backX = this.x - Math.cos(this.angle) * 12;
+            const backY = this.y - Math.sin(this.angle) * 12;
+            spawnParticles(backX, backY, 1, this.color, 20, 60, 2, 0.25);
+          }
+
+          // Constant Forward Velocity (cannot stop or reverse)
+          let forwardSpeed = SHIP_SPEED;
+          if (this.recoilTime > 0) {
+            forwardSpeed -= 150;
+            this.recoilTime -= dt;
+          }
+
+          this.x += Math.cos(this.angle) * forwardSpeed * dt;
+          this.y += Math.sin(this.angle) * forwardSpeed * dt;
+
+          // Universal Screen Wrapping
+          if (this.x < 0) this.x += V_WIDTH;
+          else if (this.x > V_WIDTH) this.x -= V_WIDTH;
+          if (this.y < 0) this.y += V_HEIGHT;
+          else if (this.y > V_HEIGHT) this.y -= V_HEIGHT;
+
+          // Firing (Button 2 Tap): max 3 active bullets
+          if (justShoot && activeBulletsCount < 3) {
+            const tipX = this.x + Math.cos(this.angle) * 17;
+            const tipY = this.y + Math.sin(this.angle) * 17;
+            addBulletCallback(new Bullet(this.id, tipX, tipY, this.angle, this.color));
+            this.recoilTime = 0.05; // 0.05s micro recoil
+            sfxLaser();
+            spawnParticles(tipX, tipY, 4, this.color, 50, 180, 2, 0.15);
+          }
+        }
+
+        destroy() {
+          if (this.isDestroyed) return;
+          this.isDestroyed = true;
+          sfxExplosion();
+          triggerScreenShake(0.2, 10);
+          spawnParticles(this.x, this.y, 28, this.color, 40, 280, 3.5, 0.8);
+          spawnParticles(this.x, this.y, 14, '#ffffff', 80, 320, 2, 0.5);
+          // Eject the pilot backward from explosion
+          this.pilot = new Pilot(this.id, this.x, this.y, this.angle, this.color);
+        }
+
+        draw(ctx) {
+          if (this.isDestroyed) {
+            if (this.pilot) this.pilot.draw(ctx);
+            return;
+          }
+
+          ctx.save();
+          ctx.translate(this.x, this.y);
+          ctx.rotate(this.angle);
+
+          // High-contrast cyberpunk neon vector triangle
+          ctx.strokeStyle = this.color;
+          ctx.shadowColor = this.glow;
+          ctx.shadowBlur = 12;
+          ctx.lineWidth = 2.5;
+          ctx.fillStyle = '#05070a';
+
+          ctx.beginPath();
+          ctx.moveTo(15, 0);       // Ship Nose
+          ctx.lineTo(-12, -10);   // Left Wing
+          ctx.lineTo(-7, 0);      // Thruster Inset
+          ctx.lineTo(-12, 10);    // Right Wing
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          // Cockpit neon core
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(1, 0, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+        }
+      }
+
+      class Block {
+        constructor(x, y, size, isIndestructible) {
+          this.x = x;
+          this.y = y;
+          this.size = size;
+          this.isIndestructible = isIndestructible;
+          this.dead = false;
+        }
+
+        draw(ctx) {
+          if (this.dead) return;
+          ctx.save();
+          if (this.isIndestructible) {
+            // Metallic dark obstacle with reflective border
+            ctx.fillStyle = '#1c2028';
+            ctx.strokeStyle = '#44556a';
+            ctx.lineWidth = 2;
+            ctx.fillRect(this.x, this.y, this.size, this.size);
+            ctx.strokeRect(this.x, this.y, this.size, this.size);
+
+            // Metallic cross icon
+            ctx.strokeStyle = '#687e9c';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(this.x + 6, this.y + 6);
+            ctx.lineTo(this.x + this.size - 6, this.y + this.size - 6);
+            ctx.moveTo(this.x + this.size - 6, this.y + 6);
+            ctx.lineTo(this.x + 6, this.y + this.size - 6);
+            ctx.stroke();
+          } else {
+            // Standard destructible gray block
+            ctx.fillStyle = '#2d3139';
+            ctx.strokeStyle = '#5a6270';
+            ctx.lineWidth = 1.5;
+            ctx.fillRect(this.x, this.y, this.size, this.size);
+            ctx.strokeRect(this.x, this.y, this.size, this.size);
+          }
+          ctx.restore();
+        }
+      }
+
+      // =========================================================
+      // 6. ARENA GENERATOR
+      // =========================================================
+      function generateArena() {
+        const blocks = [];
+        const blockSize = 40;
+        const gridW = V_WIDTH / blockSize;   // 20
+        const gridH = V_HEIGHT / blockSize;  // 15
+
+        // Symmetry layout patterns for classic Astro Party arena
+        const layoutType = Math.floor(Math.random() * 3);
+
+        for (let gy = 2; gy < gridH - 2; gy++) {
+          for (let gx = 3; gx < gridW - 3; gx++) {
+            const bx = gx * blockSize;
+            const by = gy * blockSize;
+
+            // Leave center or corridors open
+            const distCenter = Math.hypot(gx - gridW / 2 + 0.5, gy - gridH / 2 + 0.5);
+
+            if (layoutType === 0) {
+              // Four central pillars & center cross
+              if ((Math.abs(gx - gridW / 2 + 0.5) === 3 && Math.abs(gy - gridH / 2 + 0.5) === 2)) {
+                blocks.push(new Block(bx, by, blockSize, true));
+              } else if (distCenter > 2.5 && distCenter < 5 && (gx % 2 === 0 && gy % 2 === 0)) {
+                blocks.push(new Block(bx, by, blockSize, false));
+              }
+            } else if (layoutType === 1) {
+              // Diagonal brackets
+              if ((gx === 6 && gy === 5) || (gx === 13 && gy === 5) || (gx === 6 && gy === 9) || (gx === 13 && gy === 9)) {
+                blocks.push(new Block(bx, by, blockSize, true));
+              } else if ((gx >= 8 && gx <= 11) && (gy === 4 || gy === 10)) {
+                blocks.push(new Block(bx, by, blockSize, false));
+              } else if ((gy >= 6 && gy <= 8) && (gx === 5 || gx === 14)) {
+                blocks.push(new Block(bx, by, blockSize, false));
+              }
+            } else {
+              // Bunker fortress
+              if ((gx === 9 || gx === 10) && (gy === 6 || gy === 8)) {
+                blocks.push(new Block(bx, by, blockSize, true));
+              } else if ((gx >= 7 && gx <= 12) && (gy === 5 || gy === 9)) {
+                blocks.push(new Block(bx, by, blockSize, false));
+              }
+            }
+          }
+        }
+
+        return blocks;
+      }
+
+      // =========================================================
+      // 7. GAME STATE & MANAGER
+      // =========================================================
+      const GameState = {
+        MENU: 'MENU',
+        PLAYING: 'PLAYING',
+        ROUND_OVER: 'ROUND_OVER',
+        MATCH_OVER: 'MATCH_OVER'
+      };
+
+      let state = GameState.MENU;
+      let playerCount = 2;
+      let scores = [0, 0, 0, 0];
+      let players = [];
+      let bullets = [];
+      let blocks = [];
+      let roundTimer = 0;
+      let roundWinnerText = '';
+      let matchWinnerText = '';
+
+      function spawnPlayers() {
+        players = [];
+        bullets = [];
+        blocks = generateArena();
+
+        const spawns = [
+          { x: 120, y: 120, angle: Math.PI * 0.25 }, // Top-Left facing center
+          { x: 680, y: 480, angle: Math.PI * 1.25 }, // Bottom-Right facing center
+          { x: 680, y: 120, angle: Math.PI * 0.75 }, // Top-Right facing center
+          { x: 120, y: 480, angle: Math.PI * 1.75 }  // Bottom-Left facing center
+        ];
+
+        for (let i = 0; i < playerCount; i++) {
+          const cfg = PLAYER_CONFIGS[i];
+          const sp = spawns[i];
+          players.push(new Ship(cfg, sp.x, sp.y, sp.angle));
+        }
+      }
+
+      function startNewMatch() {
+        scores = [0, 0, 0, 0];
+        spawnPlayers();
+        state = GameState.PLAYING;
+      }
+
+      function startNewRound() {
+        spawnPlayers();
+        state = GameState.PLAYING;
+      }
+
+      // Circle to Rectangle collision
+      function circleRectCollision(cx, cy, r, rx, ry, rw, rh) {
+        const closestX = Math.max(rx, Math.min(cx, rx + rw));
+        const closestY = Math.max(ry, Math.min(cy, ry + rh));
+        const distX = cx - closestX;
+        const distY = cy - closestY;
+        return (distX * distX + distY * distY) < (r * r);
+      }
+
+      // =========================================================
+      // 8. UPDATE & COLLISION DETECTION
+      // =========================================================
+      function update(dt) {
+        // Screen shake decay
+        if (screenShakeTime > 0) {
+          screenShakeTime -= dt;
+        }
+
+        // Particle updates
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.life += dt;
+          if (p.life >= p.maxLife) {
+            particles.splice(i, 1);
+          }
+        }
+
+        if (state === GameState.MENU) {
+          // Select player count (2, 3, 4)
+          if (keysJustPressed.has('Digit2') || keysJustPressed.has('Numpad2')) playerCount = 2;
+          if (keysJustPressed.has('Digit3') || keysJustPressed.has('Numpad3')) playerCount = 3;
+          if (keysJustPressed.has('Digit4') || keysJustPressed.has('Numpad4')) playerCount = 4;
+          if (keysJustPressed.has('Space') || keysJustPressed.has('Enter')) {
+            startNewMatch();
+          }
+          keysJustPressed.clear();
+          return;
+        }
+
+        if (state === GameState.ROUND_OVER) {
+          roundTimer -= dt;
+          if (roundTimer <= 0) {
+            // Check match winner
+            const maxScore = Math.max(...scores);
+            if (maxScore >= POINTS_TO_WIN) {
+              const winIdx = scores.indexOf(maxScore);
+              matchWinnerText = `${PLAYER_CONFIGS[winIdx].name} WINS THE MATCH!`;
+              state = GameState.MATCH_OVER;
+            } else {
+              startNewRound();
+            }
+          }
+          keysJustPressed.clear();
+          return;
+        }
+
+        if (state === GameState.MATCH_OVER) {
+          if (keysJustPressed.has('Space') || keysJustPressed.has('Enter')) {
+            state = GameState.MENU;
+          }
+          keysJustPressed.clear();
+          return;
+        }
+
+        // --- PLAYING STATE ---
+
+        // 1. Update Ships & Input
+        players.forEach(p => {
+          const cfg = p.config;
+          const isRotating = keysDown.has(cfg.rotateKey);
+          const justShoot = keysJustPressed.has(cfg.shootKey);
+          const activeBulletsCount = bullets.filter(b => b.playerId === p.id && !b.dead).length;
+
+          p.update(dt, isRotating, justShoot, activeBulletsCount, (b) => bullets.push(b));
+        });
+
+        // 2. Update Bullets
+        bullets.forEach(b => b.update(dt));
+
+        // 3. Bullets vs Blocks Collision
+        bullets.forEach(b => {
+          if (b.dead) return;
+          for (const blk of blocks) {
+            if (blk.dead) continue;
+            if (circleRectCollision(b.x, b.y, 4, blk.x, blk.y, blk.size, blk.size)) {
+              if (blk.isIndestructible) {
+                // Reflective collision (bounce)
+                sfxBounce();
+                spawnParticles(b.x, b.y, 6, '#88aaff', 40, 160, 2, 0.2);
+                b.bounces++;
+                if (b.bounces > 3) {
+                  b.dead = true;
+                } else {
+                  // Determine normal
+                  const prevX = b.x - b.vx * dt;
+                  const prevY = b.y - b.vy * dt;
+                  if (prevX < blk.x || prevX > blk.x + blk.size) b.vx = -b.vx;
+                  if (prevY < blk.y || prevY > blk.y + blk.size) b.vy = -b.vy;
+                }
+              } else {
+                // Destructible block breaks!
+                blk.dead = true;
+                b.dead = true;
+                sfxBreak();
+                spawnParticles(blk.x + blk.size / 2, blk.y + blk.size / 2, 16, '#778899', 50, 200, 3, 0.4);
+              }
+              break;
+            }
+          }
+        });
+
+        // Clean dead bullets
+        for (let i = bullets.length - 1; i >= 0; i--) {
+          if (bullets[i].dead) bullets.splice(i, 1);
+        }
+
+        // 4. Ships vs Blocks Collision
+        players.forEach(p => {
+          if (p.isDestroyed) return;
+          for (const blk of blocks) {
+            if (blk.dead) continue;
+            if (circleRectCollision(p.x, p.y, p.radius, blk.x, blk.y, blk.size, blk.size)) {
+              if (blk.isIndestructible) {
+                // Destroy ship on high-speed crash into metallic block!
+                p.destroy();
+              } else {
+                // Break block & damage/destroy ship
+                blk.dead = true;
+                sfxBreak();
+                spawnParticles(blk.x + blk.size / 2, blk.y + blk.size / 2, 16, '#778899', 50, 200, 3, 0.4);
+                p.destroy();
+              }
+              break;
+            }
+          }
+        });
+
+        // 5. Bullets vs Ships & Pilots
+        bullets.forEach(b => {
+          if (b.dead) return;
+
+          players.forEach(p => {
+            // Bullet vs Active Ship
+            if (!p.isDestroyed) {
+              if (Math.hypot(b.x - p.x, b.y - p.y) < p.radius + 3) {
+                b.dead = true;
+                p.destroy();
+                return;
+              }
+            } else if (p.pilot && !p.pilot.dead) {
+              // Bullet vs Living Pilot
+              if (Math.hypot(b.x - p.pilot.x, b.y - p.pilot.y) < p.pilot.radius + 3) {
+                b.dead = true;
+                p.pilot.dead = true;
+                sfxExplosion();
+                spawnParticles(p.pilot.x, p.pilot.y, 16, '#ffffff', 40, 200, 2, 0.5);
+                return;
+              }
+            }
+          });
+        });
+
+        // 6. Active Ships Ramming Living Enemy Pilots
+        players.forEach(p1 => {
+          if (p1.isDestroyed) return;
+          players.forEach(p2 => {
+            if (p1.id === p2.id) return;
+            if (p2.pilot && !p2.pilot.dead) {
+              if (Math.hypot(p1.x - p2.pilot.x, p1.y - p2.pilot.y) < p1.radius + p2.pilot.radius) {
+                p2.pilot.dead = true;
+                sfxExplosion();
+                spawnParticles(p2.pilot.x, p2.pilot.y, 20, p2.color, 60, 220, 2.5, 0.6);
+              }
+            }
+          });
+        });
+
+        // 7. Check Alive Status & Round Winner
+        // Alive condition: Ship is NOT destroyed, OR living Pilot exists!
+        const alivePlayers = players.filter(p => !p.isDestroyed || (p.pilot && !p.pilot.dead));
+
+        if (alivePlayers.length <= 1) {
+          state = GameState.ROUND_OVER;
+          roundTimer = 2.5; // 2.5 seconds pause
+          sfxRoundWin();
+
+          if (alivePlayers.length === 1) {
+            const winner = alivePlayers[0];
+            scores[winner.id - 1]++;
+            roundWinnerText = `${winner.config.name} WINS THE ROUND!`;
+          } else {
+            roundWinnerText = 'DRAW ROUND!';
+          }
+        }
+
+        keysJustPressed.clear();
+      }
+
+      // =========================================================
+      // 9. RENDERING ENGINE
+      // =========================================================
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+
+      function resizeCanvas() {
+        const winW = window.innerWidth;
+        const winH = window.innerHeight;
+        const scale = Math.min(winW / V_WIDTH, winH / V_HEIGHT);
+        canvas.style.width = `${Math.floor(V_WIDTH * scale)}px`;
+        canvas.style.height = `${Math.floor(V_HEIGHT * scale)}px`;
+      }
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+
+      function draw() {
+        ctx.save();
+
+        // Screen Shake
+        if (screenShakeTime > 0) {
+          const ox = (Math.random() - 0.5) * screenShakeIntensity;
+          const oy = (Math.random() - 0.5) * screenShakeIntensity;
+          ctx.translate(ox, oy);
+        }
+
+        // Pure Black Background
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
+
+        // Retro Cyberpunk Arena Boundary Grid (Subtle)
+        ctx.strokeStyle = '#0e1218';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < V_WIDTH; x += 40) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, V_HEIGHT);
+          ctx.stroke();
+        }
+        for (let y = 0; y < V_HEIGHT; y += 40) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(V_WIDTH, y);
+          ctx.stroke();
+        }
+
+        // Draw Arena Blocks
+        blocks.forEach(b => b.draw(ctx));
+
+        // Draw Particles
+        particles.forEach(p => {
+          ctx.save();
+          const alpha = 1 - (p.life / p.maxLife);
+          ctx.globalAlpha = Math.max(0, alpha);
+          ctx.fillStyle = p.color;
+          ctx.shadowColor = p.color;
+          ctx.shadowBlur = 6;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+
+        // Draw Bullets
+        bullets.forEach(b => b.draw(ctx));
+
+        // Draw Ships & Pilots
+        players.forEach(p => p.draw(ctx));
+
+        // HUD: Floating Neon Scores
+        if (state !== GameState.MENU) {
+          ctx.save();
+          ctx.font = 'bold 20px "Courier New", monospace';
+          for (let i = 0; i < playerCount; i++) {
+            const cfg = PLAYER_CONFIGS[i];
+            const sc = scores[i];
+            ctx.fillStyle = cfg.color;
+            ctx.shadowColor = cfg.color;
+            ctx.shadowBlur = 10;
+            const xPos = 40 + i * (V_WIDTH - 80) / (playerCount - 1);
+            ctx.textAlign = 'center';
+            ctx.fillText(`${cfg.name}: ${sc}`, xPos, 32);
+          }
+          ctx.restore();
+        }
+
+        // Overlay Menus & Text
+        if (state === GameState.MENU) {
+          drawMenu();
+        } else if (state === GameState.ROUND_OVER) {
+          drawRoundOver();
+        } else if (state === GameState.MATCH_OVER) {
+          drawMatchOver();
+        }
+
+        ctx.restore();
+      }
+
+      function drawMenu() {
+        ctx.save();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
+
+        // Title
+        ctx.font = 'bold 48px "Courier New", monospace';
+        ctx.fillStyle = '#00f0ff';
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 24;
+        ctx.textAlign = 'center';
+        ctx.fillText('ASTRO PARTY', V_WIDTH / 2, 160);
+
+        ctx.font = 'bold 16px "Courier New", monospace';
+        ctx.fillStyle = '#ff007f';
+        ctx.shadowColor = '#ff007f';
+        ctx.shadowBlur = 12;
+        ctx.fillText('RETRO ARCADE MULTIPLAYER CLONE', V_WIDTH / 2, 195);
+
+        // Player Count Selection
+        ctx.font = 'bold 20px "Courier New", monospace';
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowBlur = 0;
+        ctx.fillText(`SELECT PLAYERS: [${playerCount}] (Press 2, 3, or 4)`, V_WIDTH / 2, 270);
+
+        // Controls info card
+        ctx.font = '14px "Courier New", monospace';
+        const controls = [
+          'P1 (CYAN)   : [Left Arrow] Rotate Right | [Right Arrow] Shoot',
+          'P2 (MAGENTA): [A] Rotate Right          | [D] Shoot',
+          'P3 (GREEN)  : [G] Rotate Right          | [H] Shoot',
+          'P4 (YELLOW) : [J] Rotate Right          | [K] Shoot'
+        ];
+        for (let i = 0; i < 4; i++) {
+          ctx.fillStyle = i < playerCount ? PLAYER_CONFIGS[i].color : '#444444';
+          ctx.fillText(controls[i], V_WIDTH / 2, 330 + i * 28);
+        }
+
+        // Start Prompt
+        const blink = Math.sin(Date.now() * 0.006) > 0;
+        if (blink) {
+          ctx.font = 'bold 22px "Courier New", monospace';
+          ctx.fillStyle = '#00ff66';
+          ctx.shadowColor = '#00ff66';
+          ctx.shadowBlur = 14;
+          ctx.fillText('>>> PRESS SPACE TO BATTLE <<<', V_WIDTH / 2, 490);
+        }
+
+        ctx.font = '12px "Courier New", monospace';
+        ctx.fillStyle = '#778899';
+        ctx.shadowBlur = 0;
+        ctx.fillText('Rule: Right-Turn Only! Ejected Pilots can still win. First to 5 pts wins.', V_WIDTH / 2, 540);
+
+        ctx.restore();
+      }
+
+      function drawRoundOver() {
+        ctx.save();
+        ctx.font = 'bold 36px "Courier New", monospace';
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 20;
+        ctx.textAlign = 'center';
+        ctx.fillText(roundWinnerText, V_WIDTH / 2, V_HEIGHT / 2 - 10);
+
+        ctx.font = '18px "Courier New", monospace';
+        ctx.fillStyle = '#88aacc';
+        ctx.shadowBlur = 0;
+        ctx.fillText(`NEXT ROUND IN ${Math.ceil(roundTimer)}s...`, V_WIDTH / 2, V_HEIGHT / 2 + 35);
+        ctx.restore();
+      }
+
+      function drawMatchOver() {
+        ctx.save();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
+
+        ctx.font = 'bold 44px "Courier New", monospace';
+        ctx.fillStyle = '#ffff00';
+        ctx.shadowColor = '#ffff00';
+        ctx.shadowBlur = 25;
+        ctx.textAlign = 'center';
+        ctx.fillText(matchWinnerText, V_WIDTH / 2, V_HEIGHT / 2 - 30);
+
+        ctx.font = 'bold 20px "Courier New", monospace';
+        ctx.fillStyle = '#00f0ff';
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 10;
+        ctx.fillText('PRESS SPACE FOR MAIN MENU', V_WIDTH / 2, V_HEIGHT / 2 + 40);
+        ctx.restore();
+      }
+
+      // =========================================================
+      // 10. RIGID 60FPS LOOP USING DELTA TIME
+      // =========================================================
+      let lastTime = performance.now();
+
+      function gameLoop(currentTime) {
+        let dt = (currentTime - lastTime) / 1000;
+        lastTime = currentTime;
+
+        // Clamp dt to avoid massive steps during tab switches
+        if (dt > 0.05) dt = 0.05;
+
+        update(dt);
+        draw();
+
+        requestAnimationFrame(gameLoop);
+      }
+
+      requestAnimationFrame(gameLoop);
+
+    })();
+  </script>
+</body>
+</html>

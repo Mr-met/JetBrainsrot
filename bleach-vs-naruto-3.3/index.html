@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bleach vs Naruto 3.3</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background-color: #000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      object, embed, ruffle-player {
+        width: 100% !important;
+        height: 100% !important;
+        display: block;
+      }
+    </style>
+    <script>
+      window.RufflePlayer = window.RufflePlayer || {};
+      window.RufflePlayer.config = {
+        allowScriptAccess: true,
+        autoplay: "on",
+        unmuteOverlay: "hidden",
+        splashScreen: false,
+        letterbox: "on",
+        quality: "high",
+        wmode: "direct",
+        parameters: {
+          allowScriptAccess: "always",
+          allowscriptaccess: "always",
+          allowNetworking: "all",
+          allowfullscreen: "true",
+          allowFullScreen: "true"
+        }
+      };
+    </script>
+    <script src="/ruffle/ruffle.js"></script>
+  </head>
+  <body>
+    <object id="embed" data="./game.swf?v=3.3.1&allowScriptAccess=always&allowNetworking=all&allowFullScreen=true" type="application/x-shockwave-flash">
+      <param name="movie" value="./game.swf?v=3.3.1&allowScriptAccess=always&allowNetworking=all&allowFullScreen=true" />
+      <param name="wmode" value="direct" />
+      <param name="base" value="." />
+      <param name="quality" value="high" />
+      <param name="allowScriptAccess" value="always" />
+      <param name="allowNetworking" value="all" />
+      <param name="allowFullScreen" value="true" />
+      <param name="flashvars" value="allowScriptAccess=always&allowNetworking=all&allowFullScreen=true" />
+    </object>
+
+    <script>
+      // Listen to synthetic key injection from parent window
+      window.addEventListener('message', (e) => {
+        if (!e.data) return;
+        if (e.data.type === 'BVN_DISPATCH_KEY') {
+          const ev = new KeyboardEvent(e.data.isDown ? 'keydown' : 'keyup', {
+            key: e.data.key,
+            code: e.data.code,
+            keyCode: e.data.keyCode,
+            which: e.data.keyCode,
+            bubbles: true,
+            cancelable: true
+          });
+          window.dispatchEvent(ev);
+          document.dispatchEvent(ev);
+          const rp = document.querySelector('ruffle-player') || document.getElementById('embed');
+          if (rp) rp.dispatchEvent(ev);
+        }
+      });
+
+      // Forward native keys pressed inside the iframe to parent window for online syncing & controls
+      function onFrameKey(e, isDown) {
+        if (!e.isTrusted) return; // Prevent recursive loops
+        if (e.key === 'Escape' || e.key === 'F2') {
+          if (isDown && window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'BVN_BOSS_KEY' }, '*');
+          }
+          return;
+        }
+        if (e.key === 'F11') {
+          if (isDown && window.parent && window.parent !== window) {
+            e.preventDefault();
+            window.parent.postMessage({ type: 'BVN_TOGGLE_FULLSCREEN' }, '*');
+          }
+          return;
+        }
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({
+            type: 'BVN_IFRAME_KEY',
+            code: e.code,
+            key: e.key,
+            isDown: isDown
+          }, '*');
+        }
+      }
+      window.addEventListener('keydown', (e) => onFrameKey(e, true));
+      window.addEventListener('keyup', (e) => onFrameKey(e, false));
+    </script>
+  </body>
+</html>
