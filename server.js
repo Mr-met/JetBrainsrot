@@ -2361,6 +2361,7 @@ wss.on('connection', (ws) => {
             slot: bvnSlot,
             controls: room.controls[bvnSlot],
             roomId: room.id,
+            roomName: room.name,
             isHost: true
           }));
 
@@ -2410,6 +2411,7 @@ wss.on('connection', (ws) => {
             slot: bvnSlot,
             controls: (bvnSlot !== 'SPECTATOR' ? room.controls[bvnSlot] : 'LETTER'),
             roomId: room.id,
+            roomName: room.name,
             isHost: (room.hostSlot === bvnSlot)
           }));
 

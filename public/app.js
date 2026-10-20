@@ -1871,6 +1871,24 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
     };
   }
 
+  function sendSocketMessage(msg) {
+    if (gameState.ws && gameState.ws.readyState === WebSocket.OPEN) {
+      try {
+        gameState.ws.send(JSON.stringify(msg));
+        return true;
+      } catch (err) {
+        console.warn('sendSocketMessage error:', err);
+        return false;
+      }
+    } else {
+      console.warn('WebSocket not open, attempting reconnection...', msg);
+      if (!gameState.ws || gameState.ws.readyState === WebSocket.CLOSED) {
+        connectWebSocket();
+      }
+      return false;
+    }
+  }
+
   function handleServerMessage(data) {
     if (data.type === 'NAME_UPDATED') {
       if (data.name) {
@@ -5291,6 +5309,7 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
         bvnState.mode = 'ONLINE';
         bvnState.role = data.slot;
         bvnState.roomId = data.roomId;
+        bvnState.roomName = data.roomName || bvnState.roomName || `Phòng #${data.roomId}`;
         bvnState.isHost = !!data.isHost;
         if (data.controls) bvnState.controls = data.controls;
 
@@ -5298,21 +5317,21 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
         if (modalBvnCreateRoomBackdrop) modalBvnCreateRoomBackdrop.style.display = 'none';
         if (modalBvnPasswordBackdrop) modalBvnPasswordBackdrop.style.display = 'none';
 
-        if (bvnState.isHost) {
-          initBvnGameIfNeeded();
-          bvnPlayerContainer.style.display = 'flex';
-          bvnRemoteVideo.style.display = 'none';
-        } else {
-          startBvnGuestStream();
-        }
+        initBvnGameIfNeeded();
+        if (bvnPlayerContainer) bvnPlayerContainer.style.display = 'flex';
+        if (bvnRemoteVideo) bvnRemoteVideo.style.display = 'none';
+
         updateBvnViewUI();
+        const roleText = (bvnState.role === 1 ? 'Máy 1 (P1)' : (bvnState.role === 2 ? 'Máy 2 (P2)' : 'Khán Giả'));
+        showToastNotification('Vào phòng thành công', `${bvnState.roomName} — Bạn: ${roleText}`);
         break;
       }
       case 'BVN_ROOM_UPDATE': {
         if (data.room && bvnState.roomId === data.room.id) {
           bvnState.roomName = data.room.name;
-          if (bvnState.isHost && data.room.slots && data.room.slots[2] && !bvnState.peerConnection) {
-            startBvnHostStream();
+          const otherSlot = (bvnState.role === 1 ? 2 : 1);
+          if (data.room.slots && data.room.slots[otherSlot]) {
+            showToastNotification('Đối thủ đã vào', `${data.room.slotNames[otherSlot] || 'Đối thủ'} đã tham gia phòng đấu!`);
           }
           updateBvnViewUI();
         }
