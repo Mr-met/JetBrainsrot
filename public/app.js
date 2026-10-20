@@ -5092,9 +5092,11 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
   async function startBvnHostStream() {
-    if (!bvnRufflePlayer) return;
     try {
-      const canvas = bvnRufflePlayer.shadowRoot ? bvnRufflePlayer.shadowRoot.querySelector('canvas') : bvnRufflePlayer.querySelector('canvas');
+      const iframe = document.getElementById('bvnGameIframe');
+      if (!iframe || !iframe.contentDocument) return;
+      const rp = iframe.contentDocument.querySelector('ruffle-player') || iframe.contentDocument.getElementById('embed');
+      const canvas = (rp && rp.shadowRoot) ? rp.shadowRoot.querySelector('canvas') : iframe.contentDocument.querySelector('canvas');
       if (!canvas || typeof canvas.captureStream !== 'function') return;
 
       const stream = canvas.captureStream(60);
@@ -5317,9 +5319,13 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
         if (modalBvnCreateRoomBackdrop) modalBvnCreateRoomBackdrop.style.display = 'none';
         if (modalBvnPasswordBackdrop) modalBvnPasswordBackdrop.style.display = 'none';
 
-        initBvnGameIfNeeded();
-        if (bvnPlayerContainer) bvnPlayerContainer.style.display = 'flex';
-        if (bvnRemoteVideo) bvnRemoteVideo.style.display = 'none';
+        if (bvnState.isHost) {
+          initBvnGameIfNeeded();
+          if (bvnPlayerContainer) bvnPlayerContainer.style.display = 'flex';
+          if (bvnRemoteVideo) bvnRemoteVideo.style.display = 'none';
+        } else {
+          startBvnGuestStream();
+        }
 
         updateBvnViewUI();
         const roleText = (bvnState.role === 1 ? 'Máy 1 (P1)' : (bvnState.role === 2 ? 'Máy 2 (P2)' : 'Khán Giả'));
@@ -5332,6 +5338,9 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
           const otherSlot = (bvnState.role === 1 ? 2 : 1);
           if (data.room.slots && data.room.slots[otherSlot]) {
             showToastNotification('Đối thủ đã vào', `${data.room.slotNames[otherSlot] || 'Đối thủ'} đã tham gia phòng đấu!`);
+            if (bvnState.isHost && !bvnState.peerConnection) {
+              startBvnHostStream();
+            }
           }
           updateBvnViewUI();
         }
