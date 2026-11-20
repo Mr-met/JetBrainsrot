@@ -700,10 +700,10 @@ html, body {
 .caro-board-view.mini-mode,
 .bvn-board-view.mini-mode {
   position: absolute !important;
-  right: 16px !important;
-  bottom: 16px !important;
-  width: 440px !important;
-  height: 330px !important;
+  right: 16px;
+  bottom: 16px;
+  width: 440px;
+  height: 330px;
   min-width: 260px !important;
   min-height: 190px !important;
   max-width: 90vw !important;
@@ -716,7 +716,7 @@ html, body {
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
-  resize: both !important;
+  resize: both;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
