@@ -5089,6 +5089,10 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
 
   if (btnAstroPip) {
     btnAstroPip.addEventListener('click', () => {
+      if ('documentPictureInPicture' in window && window.isSecureContext) {
+        toggleInteractivePopout('astro');
+        return;
+      }
       if (astroViewMode === 'MINI' || isPipActive) {
         astroViewMode = 'SPLIT';
         isPipActive = false;
@@ -5097,7 +5101,7 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
         astroViewMode = 'MINI';
         isPipActive = true;
         activePipGame = 'astro';
-        showToastNotification('Picture-in-Picture', 'Đã bật PiP: Game sẽ luôn hiển thị ở góc màn hình kể cả khi anh đổi sang bất kỳ tab code nào!');
+        showToastNotification('PiP Trong Tab', 'Đã bật PiP góc màn hình. (Để kéo sang màn hình khác không bị mất: bấm nút "↗ Màn Khác" ngay trên thanh PiP!)');
       }
       updateAstroViewUI();
       renderEditorContent(activeFileName);
@@ -5159,6 +5163,10 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
 
   if (btnCaroPip) {
     btnCaroPip.addEventListener('click', () => {
+      if ('documentPictureInPicture' in window && window.isSecureContext) {
+        toggleInteractivePopout('caro');
+        return;
+      }
       if (caroViewMode === 'MINI' || isPipActive) {
         caroViewMode = 'FULL';
         isPipActive = false;
@@ -5167,7 +5175,7 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
         caroViewMode = 'MINI';
         isPipActive = true;
         activePipGame = 'caro';
-        showToastNotification('Picture-in-Picture', 'Đã bật PiP: Game sẽ luôn hiển thị ở góc màn hình kể cả khi anh đổi sang bất kỳ tab code nào!');
+        showToastNotification('PiP Trong Tab', 'Đã bật PiP góc màn hình. (Để kéo sang màn hình khác không bị mất: bấm nút "↗ Màn Khác" ngay trên thanh PiP!)');
       }
       updateAstroViewUI();
       renderEditorContent(activeFileName);
