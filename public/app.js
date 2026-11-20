@@ -5408,14 +5408,26 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
 
     // Return to main window callback
     let returned = false;
-    const returnContainerToMain = () => {
+    let allowReturn = false;
+    const windowOpenedAt = Date.now();
+    setTimeout(() => {
+      allowReturn = true;
+    }, 1500);
+
+    const returnContainerToMain = (source = 'unknown') => {
+      const elapsed = Date.now() - windowOpenedAt;
+      console.log('[Popout] returnContainerToMain called by:', source, `elapsed: ${elapsed}ms`, `allowReturn: ${allowReturn}`);
+      if (!allowReturn) {
+        console.warn('[Popout] Blocked premature returnContainerToMain from:', source, `elapsed: ${elapsed}ms`);
+        return;
+      }
       if (returned) return;
       returned = true;
       if (popoutClosedCheckInterval) {
         clearInterval(popoutClosedCheckInterval);
         popoutClosedCheckInterval = null;
       }
-      if (placeholder.parentNode) {
+      if (placeholder && placeholder.parentNode) {
         placeholder.parentNode.insertBefore(container, placeholder);
         placeholder.remove();
       }
@@ -5437,19 +5449,25 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
     };
 
     if (isDocPip) {
-      // In Document Picture-in-Picture, pagehide fires strictly when the PiP window is closed
-      popWin.addEventListener('pagehide', returnContainerToMain);
+      // In Document Picture-in-Picture, only attach pagehide listener AFTER initial render cycle (300ms)
+      setTimeout(() => {
+        try {
+          popWin.addEventListener('pagehide', (e) => {
+            returnContainerToMain('pagehide');
+          }, { once: true });
+        } catch (_) {}
+      }, 300);
     } else {
       // In window.open, poll popWin.closed with grace period to prevent initial false positives
       let checkCount = 0;
       popoutClosedCheckInterval = setInterval(() => {
         checkCount++;
-        if (checkCount < 3) return; // Grace period during window setup
+        if (checkCount < 4) return; // 2 seconds grace period during window setup
         try {
-          if (!popWin || popWin.closed) {
+          if (popWin && popWin.closed) {
             clearInterval(popoutClosedCheckInterval);
             popoutClosedCheckInterval = null;
-            returnContainerToMain();
+            returnContainerToMain('interval');
           }
         } catch (_) {}
       }, 500);
