@@ -693,29 +693,168 @@ html, body {
   position: relative;
 }
 
-/* Mini Mode (PiP window) */
+/* ========================================================= */
+/* Mini Mode (Picture-in-Picture Floating Window)            */
+/* ========================================================= */
 .astro-board-view.mini-mode,
-.caro-board-view.mini-mode {
+.caro-board-view.mini-mode,
+.bvn-board-view.mini-mode {
   position: absolute !important;
   right: 16px !important;
   bottom: 16px !important;
   width: 440px !important;
   height: 330px !important;
+  min-width: 260px !important;
+  min-height: 190px !important;
+  max-width: 90vw !important;
+  max-height: 90vh !important;
   border: 2px solid #3574f0 !important;
-  border-radius: 6px !important;
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.85) !important;
-  z-index: 60 !important;
-  background-color: #000000 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+  z-index: 80 !important;
+  background-color: #1e1f22 !important;
+  display: flex !important;
+  flex-direction: column !important;
   overflow: hidden !important;
+  resize: both !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.astro-board-view.mini-mode .astro-floating-hud {
-  bottom: 4px;
-  right: 4px;
-  padding: 2px 4px;
+.astro-board-view.mini-mode:hover,
+.caro-board-view.mini-mode:hover,
+.bvn-board-view.mini-mode:hover {
+  border-color: #588efc !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.95), 0 0 14px rgba(53, 116, 240, 0.35) !important;
+}
+
+/* PiP Window Header */
+.pip-window-header {
+  height: 28px;
+  min-height: 28px;
+  background: #2b2d30;
+  border-bottom: 1px solid #3c3f41;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  user-select: none;
+  cursor: grab;
+  flex-shrink: 0;
+  z-index: 30;
+}
+
+.pip-window-header:active {
+  cursor: grabbing;
+}
+
+.pip-drag-handle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #dfe1e5;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pip-icon {
+  font-size: 12px;
+}
+
+.pip-title {
+  color: #b0b4ba;
+  font-size: 11px;
+}
+
+.pip-actions {
+  display: flex;
+  align-items: center;
   gap: 3px;
-  transform: scale(0.8);
+}
+
+.pip-btn {
+  background: #393b40;
+  border: 1px solid #4e5157;
+  color: #dfe1e5;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  line-height: 1.2;
+  transition: all 0.15s;
+}
+
+.pip-btn:hover {
+  background: #4e5157;
+  color: #ffffff;
+  border-color: #3574f0;
+}
+
+.pip-btn-size {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 4px;
+}
+
+.pip-btn-size:hover {
+  background: #3574f0;
+  border-color: #588efc;
+}
+
+.pip-btn-close:hover {
+  background: #e53935;
+  border-color: #ef5350;
+  color: #ffffff;
+}
+
+/* PiP Canvas & Iframe layout adjustments */
+.caro-board-view.mini-mode #caroCanvas {
+  flex: 1;
+  height: calc(100% - 28px) !important;
+}
+
+.astro-board-view.mini-mode .astro-canvas-container {
+  flex: 1;
+  height: calc(100% - 28px) !important;
+}
+
+.bvn-board-view.mini-mode .bvn-game-wrapper {
+  flex: 1;
+  height: calc(100% - 28px) !important;
+}
+
+/* PiP HUD Scaling in Mini Mode */
+.astro-board-view.mini-mode .astro-floating-hud,
+.caro-board-view.mini-mode .canvas-floating-hud,
+.bvn-board-view.mini-mode .bvn-floating-hud {
+  bottom: 4px !important;
+  right: 4px !important;
+  padding: 2px 4px !important;
+  gap: 3px !important;
+  transform: scale(0.72);
   transform-origin: bottom right;
+}
+
+.caro-board-view.mini-mode #hudCoord,
+.caro-board-view.mini-mode #hudZoom,
+.caro-board-view.mini-mode #hudLastMoveBtn {
+  display: none !important;
+}
+
+.astro-board-view.mini-mode #astroHudSlot,
+.astro-board-view.mini-mode #astroHudPlayers,
+.astro-board-view.mini-mode #btnAstroZoom {
+  display: none !important;
+}
+
+.bvn-board-view.mini-mode #btnBvnKeyGuide,
+.bvn-board-view.mini-mode #bvnHudRoomName,
+.bvn-board-view.mini-mode #btnBvnFullscreen {
+  display: none !important;
 }
 
 /* ========================================================= */

@@ -447,12 +447,28 @@
 
         <!-- 2. INFINITE CARO BOARD CANVAS (VISIBLE WHEN SecurityFilterChainService.java IS ACTIVE) -->
         <div class="caro-board-view" id="caroBoardView" style="display: none;">
+          <!-- PiP Window Header (Appears in Mini / PiP Mode) -->
+          <div class="pip-window-header" id="caroPipHeader" style="display: none;">
+            <div class="pip-drag-handle">
+              <span class="pip-icon">📺</span>
+              <span class="pip-title">SecurityFilterChainService.java (PiP)</span>
+            </div>
+            <div class="pip-actions">
+              <button class="pip-btn pip-btn-size" data-target="caro" data-size="S" title="Cỡ nhỏ (320x240)">S</button>
+              <button class="pip-btn pip-btn-size" data-target="caro" data-size="M" title="Cỡ vừa (440x330)">M</button>
+              <button class="pip-btn pip-btn-size" data-target="caro" data-size="L" title="Cỡ lớn (580x435)">L</button>
+              <button class="pip-btn pip-btn-restore" id="btnCaroPipRestore" title="Phóng to lại màn hình chính">🗖</button>
+              <button class="pip-btn pip-btn-close" id="btnCaroPipClose" title="Ẩn về code Java (Boss Key)">✕</button>
+            </div>
+          </div>
+
           <canvas id="caroCanvas"></canvas>
 
           <!-- Floating HUD Controls -->
           <div class="canvas-floating-hud">
             <button class="hud-btn hud-mode-btn" id="btnCaroLobbyToggle" title="Mở Sảnh Chọn Phòng Cờ XO">🛸 Sảnh Phòng XO</button>
             <button class="hud-btn hud-mode-btn" id="btnCaroSplit" title="Chia đôi màn hình: Bên trái Code Java, Bên phải Game Caro">⊞ Chia Đôi: 50/50</button>
+            <button class="hud-btn hud-mode-btn" id="btnCaroPip" title="Thu nhỏ Picture-in-Picture góc màn hình giống YouTube">📺 PiP (Thu Nhỏ)</button>
             <div class="hud-pill" id="caroHudRoomName">Phòng: Đại Sảnh</div>
             <div class="hud-pill" id="caroHudRole" style="color: #3574f0; font-weight: bold;">Bạn: Quân X</div>
             <div class="hud-pill" id="hudCoord">Pos: (0, 0)</div>
@@ -579,6 +595,21 @@
 
         <!-- 3. RETRO ARCADE ASTRO PARTY VIEW (DISGUISED IN JwtSecurityFilter.java) -->
         <div class="astro-board-view" id="astroBoardView" style="display: none;">
+          <!-- PiP Window Header (Appears in Mini / PiP Mode) -->
+          <div class="pip-window-header" id="astroPipHeader" style="display: none;">
+            <div class="pip-drag-handle">
+              <span class="pip-icon">🚀</span>
+              <span class="pip-title">JwtSecurityFilter.java (Astro PiP)</span>
+            </div>
+            <div class="pip-actions">
+              <button class="pip-btn pip-btn-size" data-target="astro" data-size="S" title="Cỡ nhỏ (320x240)">S</button>
+              <button class="pip-btn pip-btn-size" data-target="astro" data-size="M" title="Cỡ vừa (440x330)">M</button>
+              <button class="pip-btn pip-btn-size" data-target="astro" data-size="L" title="Cỡ lớn (580x435)">L</button>
+              <button class="pip-btn pip-btn-restore" id="btnAstroPipRestore" title="Phóng to lại màn hình chính">🗖</button>
+              <button class="pip-btn pip-btn-close" id="btnAstroPipClose" title="Ẩn về code Java (Boss Key)">✕</button>
+            </div>
+          </div>
+
           <div class="astro-canvas-container">
             <canvas id="astroCanvas" width="800" height="600"></canvas>
           </div>
@@ -587,6 +618,7 @@
           <div class="astro-floating-hud">
             <button class="hud-btn hud-mode-btn" id="btnAstroLobbyToggle" title="Mở Sảnh Chọn Phòng / Sảnh Chờ">🛸 Sảnh Phòng</button>
             <button class="hud-btn hud-mode-btn" id="btnAstroViewMode" title="Chuyển chế độ: Chia Đôi (Split 50:50) | Toàn Màn Hình | Góc Nhỏ (Mini)">⊞ Chia Đôi: 50/50</button>
+            <button class="hud-btn hud-mode-btn" id="btnAstroPip" title="Thu nhỏ Picture-in-Picture góc màn hình giống YouTube">📺 PiP (Thu Nhỏ)</button>
             <button class="hud-btn" id="btnAstroZoom" title="Thu phóng Game (Ctrl + Cuộn chuột hoặc phím [ / ]): 50% | 70% | 85% | 100% | Auto Fit">🔍 Zoom: Fit</button>
             <button class="hud-btn" id="btnAstroBackLounge" style="display:none;" title="Tạm dừng trận chiến và về phòng chờ">🚪 Về Sảnh Chờ</button>
             <button class="hud-btn hud-mode-btn" id="btnAstroMap" title="Chọn Bản Đồ Chiến Đấu">🗺️ Map: Cổ Điển ▾</button>
@@ -796,10 +828,26 @@
 
         <!-- 4. BLEACH VS NARUTO FIGHTING VIEW (DISGUISED IN SecurityConfiguration.java) -->
         <div class="bvn-board-view" id="bvnBoardView" style="display: none;">
+          <!-- PiP Window Header (Appears in Mini / PiP Mode) -->
+          <div class="pip-window-header" id="bvnPipHeader" style="display: none;">
+            <div class="pip-drag-handle">
+              <span class="pip-icon">⚡</span>
+              <span class="pip-title">SecurityConfiguration.java (BVN PiP)</span>
+            </div>
+            <div class="pip-actions">
+              <button class="pip-btn pip-btn-size" data-target="bvn" data-size="S" title="Cỡ nhỏ (360x240)">S</button>
+              <button class="pip-btn pip-btn-size" data-target="bvn" data-size="M" title="Cỡ vừa (480x320)">M</button>
+              <button class="pip-btn pip-btn-size" data-target="bvn" data-size="L" title="Cỡ lớn (600x400)">L</button>
+              <button class="pip-btn pip-btn-restore" id="btnBvnPipRestore" title="Phóng to lại màn hình chính">🗖</button>
+              <button class="pip-btn pip-btn-close" id="btnBvnPipClose" title="Ẩn về code Java (Boss Key)">✕</button>
+            </div>
+          </div>
+
           <!-- Floating HUD Controls -->
           <div class="bvn-floating-hud">
             <button class="hud-btn hud-mode-btn" id="btnBvnLobbyToggle" title="Mở Sảnh Chọn Phòng / Tạo Phòng Đấu Online">🛸 Sảnh Phòng BVN</button>
             <button class="hud-btn hud-mode-btn" id="btnBvnSplit" title="Chuyển chế độ: Chia Đôi 50/50 với code Java hoặc Tràn Cửa Sổ IDE">⊞ Chia Đôi: 50/50</button>
+            <button class="hud-btn hud-mode-btn" id="btnBvnPip" title="Thu nhỏ Picture-in-Picture góc màn hình giống YouTube">📺 PiP (Thu Nhỏ)</button>
             <button class="hud-btn hud-mode-btn" id="btnBvnFullscreen" title="Bật chế độ Toàn Màn Hình máy tính (Fullscreen F11)">⛶ Toàn Màn Hình</button>
             <div class="hud-pill" id="bvnHudRoomName">Phòng: 1 Máy (Offline)</div>
             <div class="hud-pill" id="bvnHudRole" style="color: #e5a440; font-weight: bold;">Bạn: Máy 1 (P1)</div>

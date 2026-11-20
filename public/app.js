@@ -370,10 +370,19 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   const codeEditorView = document.getElementById('codeEditorView');
   const caroBoardView = document.getElementById('caroBoardView');
   const btnCaroSplit = document.getElementById('btnCaroSplit');
+  const btnCaroPip = document.getElementById('btnCaroPip');
+  const caroPipHeader = document.getElementById('caroPipHeader');
+  const btnCaroPipRestore = document.getElementById('btnCaroPipRestore');
+  const btnCaroPipClose = document.getElementById('btnCaroPipClose');
+
   const astroBoardView = document.getElementById('astroBoardView');
   const bvnBoardView = document.getElementById('bvnBoardView');
   const astroCanvas = document.getElementById('astroCanvas');
   const btnAstroViewMode = document.getElementById('btnAstroViewMode');
+  const btnAstroPip = document.getElementById('btnAstroPip');
+  const astroPipHeader = document.getElementById('astroPipHeader');
+  const btnAstroPipRestore = document.getElementById('btnAstroPipRestore');
+  const btnAstroPipClose = document.getElementById('btnAstroPipClose');
   const btnAstroZoom = document.getElementById('btnAstroZoom');
   const btnAstroMode = document.getElementById('btnAstroMode');
   const btnAstroMap = document.getElementById('btnAstroMap');
@@ -561,19 +570,38 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
         if (bvnBoardView) bvnBoardView.style.display = 'none';
         if (caroViewMode === 'SPLIT') {
           if (editorBodyArea) editorBodyArea.classList.add('split-active');
+          caroBoardView.classList.remove('mini-mode');
+          if (caroPipHeader) caroPipHeader.style.display = 'none';
           codeEditorView.style.display = 'flex';
           codeEditorView.style.width = `${Math.floor(splitRatio * 100)}%`;
           caroBoardView.style.display = 'block';
+          caroBoardView.style.width = '';
           const code = file.content;
           codeInputTextarea.value = code;
           syntaxHighlightLayer.innerHTML = highlightJava(code);
           updateLineNumbers(fileName, code);
           updateCursorPosition();
-        } else {
+        } else if (caroViewMode === 'MINI') {
           if (editorBodyArea) editorBodyArea.classList.remove('split-active');
+          codeEditorView.style.display = 'flex';
+          codeEditorView.style.width = '100%';
+          const code = file.content;
+          codeInputTextarea.value = code;
+          syntaxHighlightLayer.innerHTML = highlightJava(code);
+          updateLineNumbers(fileName, code);
+          updateCursorPosition();
+          caroBoardView.classList.add('mini-mode');
+          if (caroPipHeader) caroPipHeader.style.display = 'flex';
+          caroBoardView.style.display = 'flex';
+        } else {
+          // FULL
+          if (editorBodyArea) editorBodyArea.classList.remove('split-active');
+          caroBoardView.classList.remove('mini-mode');
+          if (caroPipHeader) caroPipHeader.style.display = 'none';
           codeEditorView.style.display = 'none';
           codeEditorView.style.width = '100%';
           caroBoardView.style.display = 'block';
+          caroBoardView.style.width = '100%';
         }
         document.title = `easyposbackend – SecurityFilterChainService.java [IntelliJ IDEA]`;
         updateBreadcrumb(fileName);
@@ -593,9 +621,11 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
         if (astroViewMode === 'SPLIT') {
           if (editorBodyArea) editorBodyArea.classList.add('split-active');
           astroBoardView.classList.remove('mini-mode');
+          if (astroPipHeader) astroPipHeader.style.display = 'none';
           codeEditorView.style.display = 'flex';
           codeEditorView.style.width = `${Math.floor(splitRatio * 100)}%`;
           astroBoardView.style.display = 'flex';
+          astroBoardView.style.width = '';
           const code = file.content;
           codeInputTextarea.value = code;
           syntaxHighlightLayer.innerHTML = highlightJava(code);
@@ -611,11 +641,13 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
           updateLineNumbers(fileName, code);
           updateCursorPosition();
           astroBoardView.classList.add('mini-mode');
+          if (astroPipHeader) astroPipHeader.style.display = 'flex';
           astroBoardView.style.display = 'flex';
         } else {
           // FULL
           if (editorBodyArea) editorBodyArea.classList.remove('split-active');
           astroBoardView.classList.remove('mini-mode');
+          if (astroPipHeader) astroPipHeader.style.display = 'none';
           codeEditorView.style.display = 'none';
           codeEditorView.style.width = '100%';
           astroBoardView.style.display = 'flex';
@@ -640,17 +672,34 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
         }
         if (bvnViewMode === 'SPLIT') {
           if (editorBodyArea) editorBodyArea.classList.add('split-active');
+          bvnBoardView.classList.remove('mini-mode');
+          if (bvnPipHeader) bvnPipHeader.style.display = 'none';
           codeEditorView.style.display = 'flex';
           codeEditorView.style.width = `${Math.floor(splitRatio * 100)}%`;
           bvnBoardView.style.display = 'flex';
+          bvnBoardView.style.width = '';
           const code = file.content;
           codeInputTextarea.value = code;
           syntaxHighlightLayer.innerHTML = highlightJava(code);
           updateLineNumbers(fileName, code);
           updateCursorPosition();
+        } else if (bvnViewMode === 'MINI') {
+          if (editorBodyArea) editorBodyArea.classList.remove('split-active');
+          codeEditorView.style.display = 'flex';
+          codeEditorView.style.width = '100%';
+          const code = file.content;
+          codeInputTextarea.value = code;
+          syntaxHighlightLayer.innerHTML = highlightJava(code);
+          updateLineNumbers(fileName, code);
+          updateCursorPosition();
+          bvnBoardView.classList.add('mini-mode');
+          if (bvnPipHeader) bvnPipHeader.style.display = 'flex';
+          bvnBoardView.style.display = 'flex';
         } else {
           // FULL
           if (editorBodyArea) editorBodyArea.classList.remove('split-active');
+          bvnBoardView.classList.remove('mini-mode');
+          if (bvnPipHeader) bvnPipHeader.style.display = 'none';
           codeEditorView.style.display = 'none';
           codeEditorView.style.width = '100%';
           bvnBoardView.style.display = 'flex';
@@ -666,12 +715,34 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
 
     // Normal Java Code Editor view
     if (editorBodyArea) editorBodyArea.classList.remove('split-active');
-    caroBoardView.style.display = 'none';
-    if (astroBoardView) {
-      astroBoardView.classList.remove('mini-mode');
-      astroBoardView.style.display = 'none';
+
+    // Keep active PiP window alive if user switches to another code file!
+    if (caroViewMode === 'MINI' && !showSecurityCode) {
+      caroBoardView.style.display = 'flex';
+      caroBoardView.classList.add('mini-mode');
+      if (caroPipHeader) caroPipHeader.style.display = 'flex';
+    } else {
+      caroBoardView.style.display = 'none';
     }
-    if (bvnBoardView) bvnBoardView.style.display = 'none';
+
+    if (astroViewMode === 'MINI' && !showSecurityCode) {
+      astroBoardView.style.display = 'flex';
+      astroBoardView.classList.add('mini-mode');
+      if (astroPipHeader) astroPipHeader.style.display = 'flex';
+    } else {
+      if (astroBoardView) {
+        astroBoardView.classList.remove('mini-mode');
+        astroBoardView.style.display = 'none';
+      }
+    }
+
+    if (bvnViewMode === 'MINI' && !showSecurityCode) {
+      bvnBoardView.style.display = 'flex';
+      bvnBoardView.classList.add('mini-mode');
+      if (bvnPipHeader) bvnPipHeader.style.display = 'flex';
+    } else {
+      if (bvnBoardView) bvnBoardView.style.display = 'none';
+    }
     codeEditorView.style.display = 'flex';
     codeEditorView.style.width = '100%';
     document.title = `easyposbackend – ${fileName} [IntelliJ IDEA]`;
@@ -4831,6 +4902,10 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
         btnAstroViewMode.classList.remove('hud-mode-btn');
       }
     }
+    if (btnAstroPip) {
+      btnAstroPip.textContent = (astroViewMode === 'MINI') ? '🗖 Thoát PiP' : '📺 PiP (Thu Nhỏ)';
+      btnAstroPip.classList.toggle('hud-mode-btn', astroViewMode === 'MINI');
+    }
     if (btnAstroZoom) {
       if (astroZoomScale === 'FIT') {
         btnAstroZoom.textContent = '🔍 Zoom: Fit';
@@ -4841,6 +4916,10 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
     if (btnCaroSplit) {
       btnCaroSplit.textContent = (caroViewMode === 'SPLIT') ? '⊞ Chia Đôi: 50/50' : '🗖 Toàn Màn Hình';
       btnCaroSplit.classList.toggle('hud-mode-btn', caroViewMode === 'SPLIT');
+    }
+    if (btnCaroPip) {
+      btnCaroPip.textContent = (caroViewMode === 'MINI') ? '🗖 Thoát PiP' : '📺 PiP (Thu Nhỏ)';
+      btnCaroPip.classList.toggle('hud-mode-btn', caroViewMode === 'MINI');
     }
   }
 
@@ -4858,6 +4937,31 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
       }
       updateAstroViewUI();
       renderEditorContent(activeFileName);
+    });
+  }
+
+  if (btnAstroPip) {
+    btnAstroPip.addEventListener('click', () => {
+      astroViewMode = (astroViewMode === 'MINI') ? 'SPLIT' : 'MINI';
+      updateAstroViewUI();
+      renderEditorContent(activeFileName);
+      showToastNotification('Picture-in-Picture', astroViewMode === 'MINI' ? 'Đã bật PiP thu nhỏ góc màn hình (Có thể kéo thả di chuyển & chỉnh cỡ).' : 'Đã thoát chế độ PiP.');
+    });
+  }
+
+  if (btnAstroPipRestore) {
+    btnAstroPipRestore.addEventListener('click', () => {
+      astroViewMode = 'FULL';
+      updateAstroViewUI();
+      renderEditorContent(activeFileName);
+      showToastNotification('Chế độ', 'Đã mở rộng toàn màn hình.');
+    });
+  }
+
+  if (btnAstroPipClose) {
+    btnAstroPipClose.addEventListener('click', () => {
+      astroViewMode = 'FULL';
+      toggleBossMode();
     });
   }
 
@@ -4886,6 +4990,126 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
       showToastNotification('Chế độ Caro', caroViewMode === 'SPLIT' ? 'Đã chia đôi màn hình với Code Java.' : 'Đã mở rộng toàn màn hình.');
     });
   }
+
+  if (btnCaroPip) {
+    btnCaroPip.addEventListener('click', () => {
+      caroViewMode = (caroViewMode === 'MINI') ? 'FULL' : 'MINI';
+      updateAstroViewUI();
+      renderEditorContent(activeFileName);
+      showToastNotification('Picture-in-Picture', caroViewMode === 'MINI' ? 'Đã bật PiP thu nhỏ góc màn hình (Có thể kéo thả di chuyển & chỉnh cỡ).' : 'Đã thoát chế độ PiP.');
+    });
+  }
+
+  if (btnCaroPipRestore) {
+    btnCaroPipRestore.addEventListener('click', () => {
+      caroViewMode = 'FULL';
+      updateAstroViewUI();
+      renderEditorContent(activeFileName);
+      showToastNotification('Chế độ Caro', 'Đã mở rộng toàn màn hình.');
+    });
+  }
+
+  if (btnCaroPipClose) {
+    btnCaroPipClose.addEventListener('click', () => {
+      caroViewMode = 'FULL';
+      toggleBossMode();
+    });
+  }
+
+  // Universal PiP Draggable & Resizable System
+  function makePipDraggable(container, header, onResize) {
+    if (!container || !header) return;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let initialLeft = 0;
+    let initialTop = 0;
+
+    header.addEventListener('mousedown', (e) => {
+      if (e.target.closest('button')) return;
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      const rect = container.getBoundingClientRect();
+      initialLeft = rect.left;
+      initialTop = rect.top;
+
+      container.style.right = 'auto';
+      container.style.bottom = 'auto';
+      container.style.left = `${initialLeft}px`;
+      container.style.top = `${initialTop}px`;
+      header.style.cursor = 'grabbing';
+      e.preventDefault();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      let newLeft = initialLeft + dx;
+      let newTop = initialTop + dy;
+
+      const maxLeft = Math.max(10, window.innerWidth - container.offsetWidth - 10);
+      const maxTop = Math.max(10, window.innerHeight - container.offsetHeight - 10);
+      newLeft = Math.max(10, Math.min(maxLeft, newLeft));
+      newTop = Math.max(30, Math.min(maxTop, newTop));
+
+      container.style.left = `${newLeft}px`;
+      container.style.top = `${newTop}px`;
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        header.style.cursor = 'grab';
+      }
+    });
+
+    if (window.ResizeObserver && onResize) {
+      const ro = new ResizeObserver(() => {
+        if (container.classList.contains('mini-mode')) {
+          onResize();
+        }
+      });
+      ro.observe(container);
+    }
+  }
+
+  // Initialize Draggable PiP for Caro and Astro
+  makePipDraggable(caroBoardView, caroPipHeader, () => { resizeCanvas(); renderBoard(); });
+  makePipDraggable(astroBoardView, astroPipHeader, () => { resizeAstroCanvas(); });
+
+  // PiP Size Presets
+  document.querySelectorAll('.pip-btn-size').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const target = btn.dataset.target;
+      const size = btn.dataset.size;
+      const sizes = {
+        S: { w: 340, h: 250 },
+        M: { w: 460, h: 340 },
+        L: { w: 600, h: 440 }
+      };
+      const dim = sizes[size] || sizes.M;
+      let container = null;
+      let onResize = null;
+      if (target === 'caro') {
+        container = caroBoardView;
+        onResize = () => { resizeCanvas(); renderBoard(); };
+      } else if (target === 'astro') {
+        container = astroBoardView;
+        onResize = () => resizeAstroCanvas();
+      } else if (target === 'bvn') {
+        container = bvnBoardView;
+      }
+      if (container) {
+        container.style.width = `${dim.w}px`;
+        container.style.height = `${dim.h}px`;
+        if (onResize) onResize();
+        showToastNotification('Kích thước PiP', `Đã chuyển sang cỡ ${size} (${dim.w}x${dim.h}px)`);
+      }
+    });
+  });
 
   // Ctrl + Mouse Wheel for Smooth Zooming
   if (astroBoardView) {
@@ -4951,6 +5175,10 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   // =========================================================
   const btnBvnLobbyToggle = document.getElementById('btnBvnLobbyToggle');
   const btnBvnSplit = document.getElementById('btnBvnSplit');
+  const btnBvnPip = document.getElementById('btnBvnPip');
+  const bvnPipHeader = document.getElementById('bvnPipHeader');
+  const btnBvnPipRestore = document.getElementById('btnBvnPipRestore');
+  const btnBvnPipClose = document.getElementById('btnBvnPipClose');
   const btnBvnFullscreen = document.getElementById('btnBvnFullscreen');
   const bvnHudRoomName = document.getElementById('bvnHudRoomName');
   const bvnHudRole = document.getElementById('bvnHudRole');
@@ -5268,6 +5496,10 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   function updateBvnViewUI() {
     if (btnBvnSplit) {
       btnBvnSplit.textContent = (bvnViewMode === 'SPLIT') ? '⊞ Chia Đôi: 50/50' : '🗖 Tràn Cửa Sổ IDE';
+    }
+    if (btnBvnPip) {
+      btnBvnPip.textContent = (bvnViewMode === 'MINI') ? '🗖 Thoát PiP' : '📺 PiP (Thu Nhỏ)';
+      btnBvnPip.classList.toggle('hud-mode-btn', bvnViewMode === 'MINI');
     }
     if (bvnHudRoomName) {
       bvnHudRoomName.textContent = `Phòng: ${bvnState.roomName || '1 Máy (Offline)'}`;
@@ -5632,6 +5864,33 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
       updateBvnViewUI();
     });
   }
+
+  if (btnBvnPip) {
+    btnBvnPip.addEventListener('click', () => {
+      bvnViewMode = (bvnViewMode === 'MINI') ? 'SPLIT' : 'MINI';
+      renderEditorContent(activeFileName);
+      updateBvnViewUI();
+      showToastNotification('Picture-in-Picture', bvnViewMode === 'MINI' ? 'Đã bật PiP thu nhỏ góc màn hình (Có thể kéo thả di chuyển & chỉnh cỡ).' : 'Đã thoát chế độ PiP.');
+    });
+  }
+
+  if (btnBvnPipRestore) {
+    btnBvnPipRestore.addEventListener('click', () => {
+      bvnViewMode = 'FULL';
+      renderEditorContent(activeFileName);
+      updateBvnViewUI();
+      showToastNotification('Chế độ BVN', 'Đã mở rộng toàn màn hình.');
+    });
+  }
+
+  if (btnBvnPipClose) {
+    btnBvnPipClose.addEventListener('click', () => {
+      bvnViewMode = 'FULL';
+      toggleBossMode();
+    });
+  }
+
+  makePipDraggable(bvnBoardView, bvnPipHeader, null);
 
   // BVN Fullscreen Controller
   function toggleBvnFullscreen() {
