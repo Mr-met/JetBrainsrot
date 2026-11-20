@@ -356,6 +356,8 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   let caroViewMode = 'FULL';    // 'FULL' | 'SPLIT'
   let bvnViewMode = 'SPLIT';     // 'SPLIT' (50:50 với Java code) | 'FULL'
   let splitRatio = 0.5;         // 50% code, 50% game
+  let isPipActive = false;      // True whenever any game is currently pinned in PiP mode
+  let activePipGame = 'caro';   // 'caro' | 'astro' | 'bvn'
 
   // =========================================================
   // 2. DOM ELEMENTS
@@ -717,18 +719,21 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
     if (editorBodyArea) editorBodyArea.classList.remove('split-active');
 
     // Keep active PiP window alive if user switches to another code file!
-    if (caroViewMode === 'MINI' && !showSecurityCode) {
+    if ((caroViewMode === 'MINI' || (isPipActive && activePipGame === 'caro')) && !showSecurityCode) {
       caroBoardView.style.display = 'flex';
       caroBoardView.classList.add('mini-mode');
       if (caroPipHeader) caroPipHeader.style.display = 'flex';
+      resizeCanvas();
+      renderBoard();
     } else {
       caroBoardView.style.display = 'none';
     }
 
-    if (astroViewMode === 'MINI' && !showSecurityCode) {
+    if ((astroViewMode === 'MINI' || (isPipActive && activePipGame === 'astro')) && !showSecurityCode) {
       astroBoardView.style.display = 'flex';
       astroBoardView.classList.add('mini-mode');
       if (astroPipHeader) astroPipHeader.style.display = 'flex';
+      resizeAstroCanvas();
     } else {
       if (astroBoardView) {
         astroBoardView.classList.remove('mini-mode');
@@ -736,12 +741,15 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
       }
     }
 
-    if (bvnViewMode === 'MINI' && !showSecurityCode) {
+    if ((bvnViewMode === 'MINI' || (isPipActive && activePipGame === 'bvn')) && !showSecurityCode) {
       bvnBoardView.style.display = 'flex';
       bvnBoardView.classList.add('mini-mode');
       if (bvnPipHeader) bvnPipHeader.style.display = 'flex';
     } else {
-      if (bvnBoardView) bvnBoardView.style.display = 'none';
+      if (bvnBoardView) {
+        bvnBoardView.classList.remove('mini-mode');
+        bvnBoardView.style.display = 'none';
+      }
     }
     codeEditorView.style.display = 'flex';
     codeEditorView.style.width = '100%';
@@ -888,7 +896,36 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
     if (!openTabs.includes(fileName)) {
       openTabs.push(fileName);
     }
+
+    const previousFile = activeFileName;
     activeFileName = fileName;
+
+    const isTargetGame = virtualFiles[fileName].isSecurityGame || virtualFiles[fileName].isAstroGame || virtualFiles[fileName].isBvnGame;
+    const isPrevGame = virtualFiles[previousFile] && (virtualFiles[previousFile].isSecurityGame || virtualFiles[previousFile].isAstroGame || virtualFiles[previousFile].isBvnGame);
+
+    // If user was on a game and switched to a code file, auto-activate PiP so game doesn't disappear!
+    if (isPrevGame && !isTargetGame) {
+      isPipActive = true;
+      if (virtualFiles[previousFile].isSecurityGame) {
+        activePipGame = 'caro';
+        caroViewMode = 'MINI';
+      } else if (virtualFiles[previousFile].isAstroGame) {
+        activePipGame = 'astro';
+        astroViewMode = 'MINI';
+      } else if (virtualFiles[previousFile].isBvnGame) {
+        activePipGame = 'bvn';
+        bvnViewMode = 'MINI';
+      }
+    } else if (isTargetGame) {
+      if (virtualFiles[fileName].isSecurityGame) {
+        activePipGame = 'caro';
+      } else if (virtualFiles[fileName].isAstroGame) {
+        activePipGame = 'astro';
+      } else if (virtualFiles[fileName].isBvnGame) {
+        activePipGame = 'bvn';
+      }
+    }
+
     showSecurityCode = false; // Reset to Caro board if opening SecurityFilterChainService
     renderTabs();
     renderEditorContent(fileName);
@@ -4942,26 +4979,38 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
 
   if (btnAstroPip) {
     btnAstroPip.addEventListener('click', () => {
-      astroViewMode = (astroViewMode === 'MINI') ? 'SPLIT' : 'MINI';
+      if (astroViewMode === 'MINI' || isPipActive) {
+        astroViewMode = 'SPLIT';
+        isPipActive = false;
+        showToastNotification('Picture-in-Picture', 'Đã thoát chế độ PiP.');
+      } else {
+        astroViewMode = 'MINI';
+        isPipActive = true;
+        activePipGame = 'astro';
+        showToastNotification('Picture-in-Picture', 'Đã bật PiP: Game sẽ luôn hiển thị ở góc màn hình kể cả khi anh đổi sang bất kỳ tab code nào!');
+      }
       updateAstroViewUI();
       renderEditorContent(activeFileName);
-      showToastNotification('Picture-in-Picture', astroViewMode === 'MINI' ? 'Đã bật PiP thu nhỏ góc màn hình (Có thể kéo thả di chuyển & chỉnh cỡ).' : 'Đã thoát chế độ PiP.');
     });
   }
 
   if (btnAstroPipRestore) {
     btnAstroPipRestore.addEventListener('click', () => {
       astroViewMode = 'FULL';
-      updateAstroViewUI();
-      renderEditorContent(activeFileName);
-      showToastNotification('Chế độ', 'Đã mở rộng toàn màn hình.');
+      isPipActive = false;
+      switchToFile('JwtSecurityFilter.java');
+      showToastNotification('Chế độ Astro', 'Đã mở rộng toàn màn hình.');
     });
   }
 
   if (btnAstroPipClose) {
     btnAstroPipClose.addEventListener('click', () => {
-      astroViewMode = 'FULL';
-      toggleBossMode();
+      astroViewMode = 'SPLIT';
+      isPipActive = false;
+      astroBoardView.style.display = 'none';
+      astroBoardView.classList.remove('mini-mode');
+      if (astroPipHeader) astroPipHeader.style.display = 'none';
+      showToastNotification('PiP đã đóng', 'Đã đóng cửa sổ PiP thu nhỏ.');
     });
   }
 
@@ -4993,18 +5042,26 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
 
   if (btnCaroPip) {
     btnCaroPip.addEventListener('click', () => {
-      caroViewMode = (caroViewMode === 'MINI') ? 'FULL' : 'MINI';
+      if (caroViewMode === 'MINI' || isPipActive) {
+        caroViewMode = 'FULL';
+        isPipActive = false;
+        showToastNotification('Picture-in-Picture', 'Đã thoát chế độ PiP (Mở rộng toàn màn hình).');
+      } else {
+        caroViewMode = 'MINI';
+        isPipActive = true;
+        activePipGame = 'caro';
+        showToastNotification('Picture-in-Picture', 'Đã bật PiP: Game sẽ luôn hiển thị ở góc màn hình kể cả khi anh đổi sang bất kỳ tab code nào!');
+      }
       updateAstroViewUI();
       renderEditorContent(activeFileName);
-      showToastNotification('Picture-in-Picture', caroViewMode === 'MINI' ? 'Đã bật PiP thu nhỏ góc màn hình (Có thể kéo thả di chuyển & chỉnh cỡ).' : 'Đã thoát chế độ PiP.');
     });
   }
 
   if (btnCaroPipRestore) {
     btnCaroPipRestore.addEventListener('click', () => {
       caroViewMode = 'FULL';
-      updateAstroViewUI();
-      renderEditorContent(activeFileName);
+      isPipActive = false;
+      switchToFile('SecurityFilterChainService.java');
       showToastNotification('Chế độ Caro', 'Đã mở rộng toàn màn hình.');
     });
   }
@@ -5012,9 +5069,147 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   if (btnCaroPipClose) {
     btnCaroPipClose.addEventListener('click', () => {
       caroViewMode = 'FULL';
-      toggleBossMode();
+      isPipActive = false;
+      caroBoardView.style.display = 'none';
+      caroBoardView.classList.remove('mini-mode');
+      if (caroPipHeader) caroPipHeader.style.display = 'none';
+      showToastNotification('PiP đã đóng', 'Đã đóng cửa sổ PiP thu nhỏ.');
     });
   }
+
+  // Native OS-Level Document Picture-in-Picture & Canvas Stream Popout
+  let activePipPopoutWindow = null;
+
+  async function toggleDocumentPip(targetGame) {
+    let container = null;
+    let onResize = null;
+    if (targetGame === 'caro') {
+      container = caroBoardView;
+      onResize = () => { resizeCanvas(); renderBoard(); };
+    } else if (targetGame === 'astro') {
+      container = astroBoardView;
+      onResize = () => resizeAstroCanvas();
+    } else if (targetGame === 'bvn') {
+      container = bvnBoardView;
+    }
+    if (!container) return;
+
+    if (activePipPopoutWindow) {
+      try { activePipPopoutWindow.close(); } catch (_) {}
+      activePipPopoutWindow = null;
+      return;
+    }
+
+    if ('documentPictureInPicture' in window) {
+      try {
+        const pipWindow = await window.documentPictureInPicture.requestWindow({
+          width: 500,
+          height: 380
+        });
+        activePipPopoutWindow = pipWindow;
+
+        [...document.styleSheets].forEach((styleSheet) => {
+          try {
+            const cssRules = [...styleSheet.cssRules].map((rule) => rule.cssText).join('');
+            const style = document.createElement('style');
+            style.textContent = cssRules;
+            pipWindow.document.head.appendChild(style);
+          } catch (e) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.type = styleSheet.type;
+            link.media = styleSheet.media;
+            link.href = styleSheet.href;
+            pipWindow.document.head.appendChild(link);
+          }
+        });
+
+        pipWindow.document.body.style.margin = '0';
+        pipWindow.document.body.style.backgroundColor = '#1e1f22';
+        pipWindow.document.body.style.overflow = 'hidden';
+        pipWindow.document.body.style.display = 'flex';
+        pipWindow.document.body.style.flexDirection = 'column';
+        pipWindow.document.body.style.height = '100vh';
+
+        const placeholder = document.createElement('div');
+        placeholder.id = `${container.id}-pip-placeholder`;
+        container.parentNode.insertBefore(placeholder, container);
+
+        pipWindow.document.body.appendChild(container);
+        container.classList.remove('mini-mode');
+        container.style.position = 'static';
+        container.style.width = '100%';
+        container.style.height = '100%';
+        container.style.display = 'flex';
+
+        pipWindow.addEventListener('resize', () => {
+          if (onResize) onResize();
+        });
+
+        pipWindow.addEventListener('pagehide', () => {
+          if (placeholder.parentNode) {
+            placeholder.parentNode.insertBefore(container, placeholder);
+            placeholder.remove();
+          }
+          activePipPopoutWindow = null;
+          renderEditorContent(activeFileName);
+        });
+
+        showToastNotification('Cửa Sổ Windows Nổi', 'Đã tách game ra màn hình ngoài! Anh chuyển tab trình duyệt hay làm việc khác game vẫn luôn hiển thị.');
+        if (onResize) setTimeout(onResize, 100);
+        return;
+      } catch (err) {
+        console.warn('Document Picture-in-Picture error:', err);
+      }
+    }
+
+    if (targetGame === 'caro') {
+      openCanvasVideoPip(document.getElementById('caroCanvas'));
+    } else if (targetGame === 'astro') {
+      openCanvasVideoPip(document.getElementById('astroCanvas'));
+    } else {
+      showToastNotification('PiP Thông Báo', 'Trình duyệt đang dùng PiP ghim trong trang.');
+    }
+  }
+
+  function openCanvasVideoPip(canvas) {
+    if (!canvas || !canvas.captureStream) return;
+    try {
+      let video = document.getElementById('nativePipVideoFallback');
+      if (!video) {
+        video = document.createElement('video');
+        video.id = 'nativePipVideoFallback';
+        video.muted = true;
+        video.playsInline = true;
+        video.autoplay = true;
+        video.style.position = 'fixed';
+        video.style.bottom = '-9999px';
+        video.style.right = '-9999px';
+        video.style.width = '1px';
+        video.style.height = '1px';
+        video.style.opacity = '0';
+        document.body.appendChild(video);
+      }
+      video.srcObject = canvas.captureStream(30);
+      video.play().then(() => {
+        if (video.requestPictureInPicture) {
+          video.requestPictureInPicture().then(() => {
+            showToastNotification('Cửa Sổ Windows Nổi', 'Đã mở PiP nổi trên màn hình Windows!');
+          }).catch(err => console.warn('requestPictureInPicture error:', err));
+        }
+      });
+    } catch (err) {
+      console.warn('Canvas PiP error:', err);
+    }
+  }
+
+  document.querySelectorAll('.pip-btn-popout').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const target = btn.dataset.target;
+      toggleDocumentPip(target);
+    });
+  });
 
   // Universal PiP Draggable & Resizable System
   function makePipDraggable(container, header, onResize) {
@@ -5867,26 +6062,38 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
 
   if (btnBvnPip) {
     btnBvnPip.addEventListener('click', () => {
-      bvnViewMode = (bvnViewMode === 'MINI') ? 'SPLIT' : 'MINI';
+      if (bvnViewMode === 'MINI' || isPipActive) {
+        bvnViewMode = 'SPLIT';
+        isPipActive = false;
+        showToastNotification('Picture-in-Picture', 'Đã thoát chế độ PiP.');
+      } else {
+        bvnViewMode = 'MINI';
+        isPipActive = true;
+        activePipGame = 'bvn';
+        showToastNotification('Picture-in-Picture', 'Đã bật PiP: Game sẽ luôn hiển thị ở góc màn hình kể cả khi anh đổi sang bất kỳ tab code nào!');
+      }
       renderEditorContent(activeFileName);
       updateBvnViewUI();
-      showToastNotification('Picture-in-Picture', bvnViewMode === 'MINI' ? 'Đã bật PiP thu nhỏ góc màn hình (Có thể kéo thả di chuyển & chỉnh cỡ).' : 'Đã thoát chế độ PiP.');
     });
   }
 
   if (btnBvnPipRestore) {
     btnBvnPipRestore.addEventListener('click', () => {
       bvnViewMode = 'FULL';
-      renderEditorContent(activeFileName);
-      updateBvnViewUI();
+      isPipActive = false;
+      switchToFile('SecurityConfiguration.java');
       showToastNotification('Chế độ BVN', 'Đã mở rộng toàn màn hình.');
     });
   }
 
   if (btnBvnPipClose) {
     btnBvnPipClose.addEventListener('click', () => {
-      bvnViewMode = 'FULL';
-      toggleBossMode();
+      bvnViewMode = 'SPLIT';
+      isPipActive = false;
+      bvnBoardView.style.display = 'none';
+      bvnBoardView.classList.remove('mini-mode');
+      if (bvnPipHeader) bvnPipHeader.style.display = 'none';
+      showToastNotification('PiP đã đóng', 'Đã đóng cửa sổ PiP thu nhỏ.');
     });
   }
 

@@ -805,6 +805,19 @@ html, body {
   border-color: #588efc;
 }
 
+.pip-btn-popout {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  background: #25324d;
+  color: #72a7fe;
+  border-color: #3574f0;
+}
+
+.pip-btn-popout:hover {
+  background: #3574f0;
+  color: #ffffff;
+}
+
 .pip-btn-close:hover {
   background: #e53935;
   border-color: #ef5350;
