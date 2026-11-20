@@ -818,10 +818,55 @@ html, body {
   color: #ffffff;
 }
 
+.pip-divider {
+  display: inline-block;
+  width: 1px;
+  height: 14px;
+  background-color: #43454a;
+  margin: 0 2px;
+}
+
+.pip-btn-zoom-in,
+.pip-btn-zoom-out,
+.pip-btn-center {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: bold;
+  padding: 1px 5px;
+}
+
+.pip-btn-center {
+  background: #233b2b;
+  color: #73c991;
+  border-color: #396444;
+}
+
+.pip-btn-center:hover {
+  background: #2f563a;
+  color: #ffffff;
+  border-color: #57965c;
+}
+
 .pip-btn-close:hover {
   background: #e53935;
   border-color: #ef5350;
   color: #ffffff;
+}
+
+#btnCaroPopoutDirect {
+  background: #25324d;
+  color: #72a7fe;
+  border-color: #3574f0;
+}
+
+#btnCaroPopoutDirect:hover {
+  background: #3574f0;
+  color: #ffffff;
+}
+
+#hudZoomOutBtn,
+#hudZoomInBtn {
+  font-weight: bold;
 }
 
 /* PiP Canvas & Iframe layout adjustments */

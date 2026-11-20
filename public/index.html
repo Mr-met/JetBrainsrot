@@ -454,10 +454,14 @@
               <span class="pip-title">SecurityFilterChainService.java (PiP)</span>
             </div>
             <div class="pip-actions">
+              <button class="pip-btn pip-btn-zoom-out" data-target="caro" title="Thu nhỏ bàn cờ (-)">−</button>
+              <button class="pip-btn pip-btn-zoom-in" data-target="caro" title="Phóng to bàn cờ (+)">+</button>
+              <button class="pip-btn pip-btn-center" data-target="caro" title="Về tâm (0,0) hoặc Nước gần nhất">⌖ Tâm</button>
+              <span class="pip-divider"></span>
               <button class="pip-btn pip-btn-size" data-target="caro" data-size="S" title="Cỡ nhỏ (320x240)">S</button>
               <button class="pip-btn pip-btn-size" data-target="caro" data-size="M" title="Cỡ vừa (440x330)">M</button>
               <button class="pip-btn pip-btn-size" data-target="caro" data-size="L" title="Cỡ lớn (580x435)">L</button>
-              <button class="pip-btn pip-btn-popout" data-target="caro" title="Tách ra cửa sổ nổi Windows OS (Không bao giờ mất khi đổi tab trình duyệt hoặc đổi app)">↗ Cửa Sổ Ngoài</button>
+              <button class="pip-btn pip-btn-popout" data-target="caro" title="Mở cửa sổ riêng (Popup) - Kéo sang màn hình thứ 2 chơi trực tiếp">↗ Màn Khác</button>
               <button class="pip-btn pip-btn-restore" id="btnCaroPipRestore" title="Phóng to lại màn hình chính">🗖</button>
               <button class="pip-btn pip-btn-close" id="btnCaroPipClose" title="Ẩn về code Java (Boss Key)">✕</button>
             </div>
@@ -470,6 +474,7 @@
             <button class="hud-btn hud-mode-btn" id="btnCaroLobbyToggle" title="Mở Sảnh Chọn Phòng Cờ XO">🛸 Sảnh Phòng XO</button>
             <button class="hud-btn hud-mode-btn" id="btnCaroSplit" title="Chia đôi màn hình: Bên trái Code Java, Bên phải Game Caro">⊞ Chia Đôi: 50/50</button>
             <button class="hud-btn hud-mode-btn" id="btnCaroPip" title="Thu nhỏ Picture-in-Picture góc màn hình giống YouTube">📺 PiP (Thu Nhỏ)</button>
+            <button class="hud-btn hud-mode-btn" id="btnCaroPopoutDirect" title="Mở cửa sổ riêng để kéo sang màn hình thứ 2 chơi trực tiếp">↗ Màn Khác (Popup)</button>
             <div class="hud-pill" id="caroHudRoomName">Phòng: Đại Sảnh</div>
             <div class="hud-pill" id="caroHudRole" style="color: #3574f0; font-weight: bold;">Bạn: Quân X</div>
             <div class="hud-pill" id="hudCoord">Pos: (0, 0)</div>
@@ -477,7 +482,9 @@
             <div class="hud-pill" id="hudTurn">Lượt: X</div>
             <button class="hud-btn hud-mode-btn" id="btnCaroSwitchRole" title="Đổi sang quân cờ đối thủ nếu vị trí trống">⇄ Đổi Quân</button>
             <button class="hud-btn hud-mode-btn" id="hudModeBtn" title="Chuyển chế độ: 1 Máy (X-O luân phiên) hoặc LAN (Ngrok)">Mode: 1 Máy (X &amp; O)</button>
-            <button class="hud-btn" id="hudCenterBtn" title="Về tâm (0,0)">⌖ Center</button>
+            <button class="hud-btn" id="hudZoomOutBtn" title="Thu nhỏ bàn cờ (-)">🔍−</button>
+            <button class="hud-btn" id="hudZoomInBtn" title="Phóng to bàn cờ (+)">🔍+</button>
+            <button class="hud-btn" id="hudCenterBtn" title="Về tâm (0,0) hoặc Nước gần nhất">⌖ Center</button>
             <button class="hud-btn" id="hudLastMoveBtn" title="Xem nước đi gần nhất">🎯 Last</button>
             <button class="hud-btn" id="hudRematchBtn" title="Đặt lại ván mới">🔄 Reset</button>
             <button class="hud-btn" id="hudUndoBtn" title="Hoàn lại nước vừa đi">↩ Undo</button>
@@ -603,10 +610,14 @@
               <span class="pip-title">JwtSecurityFilter.java (Astro PiP)</span>
             </div>
             <div class="pip-actions">
+              <button class="pip-btn pip-btn-zoom-out" data-target="astro" title="Thu nhỏ (-)">−</button>
+              <button class="pip-btn pip-btn-zoom-in" data-target="astro" title="Phóng to (+)">+</button>
+              <button class="pip-btn pip-btn-center" data-target="astro" title="Tự động vừa vặn (Fit)">⌖ Fit</button>
+              <span class="pip-divider"></span>
               <button class="pip-btn pip-btn-size" data-target="astro" data-size="S" title="Cỡ nhỏ (320x240)">S</button>
               <button class="pip-btn pip-btn-size" data-target="astro" data-size="M" title="Cỡ vừa (440x330)">M</button>
               <button class="pip-btn pip-btn-size" data-target="astro" data-size="L" title="Cỡ lớn (580x435)">L</button>
-              <button class="pip-btn pip-btn-popout" data-target="astro" title="Tách ra cửa sổ nổi Windows OS (Không bao giờ mất khi đổi tab trình duyệt hoặc đổi app)">↗ Cửa Sổ Ngoài</button>
+              <button class="pip-btn pip-btn-popout" data-target="astro" title="Mở cửa sổ riêng (Popup) - Kéo sang màn hình thứ 2 chơi trực tiếp">↗ Màn Khác</button>
               <button class="pip-btn pip-btn-restore" id="btnAstroPipRestore" title="Phóng to lại màn hình chính">🗖</button>
               <button class="pip-btn pip-btn-close" id="btnAstroPipClose" title="Ẩn về code Java (Boss Key)">✕</button>
             </div>
@@ -840,7 +851,7 @@
               <button class="pip-btn pip-btn-size" data-target="bvn" data-size="S" title="Cỡ nhỏ (360x240)">S</button>
               <button class="pip-btn pip-btn-size" data-target="bvn" data-size="M" title="Cỡ vừa (480x320)">M</button>
               <button class="pip-btn pip-btn-size" data-target="bvn" data-size="L" title="Cỡ lớn (600x400)">L</button>
-              <button class="pip-btn pip-btn-popout" data-target="bvn" title="Tách ra cửa sổ nổi Windows OS (Không bao giờ mất khi đổi tab trình duyệt hoặc đổi app)">↗ Cửa Sổ Ngoài</button>
+              <button class="pip-btn pip-btn-popout" data-target="bvn" title="Mở cửa sổ riêng (Popup) - Kéo sang màn hình thứ 2 chơi trực tiếp">↗ Màn Khác</button>
               <button class="pip-btn pip-btn-restore" id="btnBvnPipRestore" title="Phóng to lại màn hình chính">🗖</button>
               <button class="pip-btn pip-btn-close" id="btnBvnPipClose" title="Ẩn về code Java (Boss Key)">✕</button>
             </div>

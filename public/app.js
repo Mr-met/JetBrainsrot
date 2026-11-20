@@ -525,6 +525,9 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   const hudTurn = document.getElementById('hudTurn');
   const hudModeBtn = document.getElementById('hudModeBtn');
   const hudCenterBtn = document.getElementById('hudCenterBtn');
+  const hudZoomOutBtn = document.getElementById('hudZoomOutBtn');
+  const hudZoomInBtn = document.getElementById('hudZoomInBtn');
+  const btnCaroPopoutDirect = document.getElementById('btnCaroPopoutDirect');
   const hudLastMoveBtn = document.getElementById('hudLastMoveBtn');
   const hudRematchBtn = document.getElementById('hudRematchBtn');
   const hudUndoBtn = document.getElementById('hudUndoBtn');
@@ -565,6 +568,19 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
     if (file.isSecurityGame) {
       lastSecurityGame = fileName;
       if (!showSecurityCode) {
+        if (activePopoutWindow && !activePopoutWindow.closed && activePopoutTarget === 'caro') {
+          try { activePopoutWindow.focus(); } catch (_) {}
+          codeEditorView.style.display = 'flex';
+          codeEditorView.style.width = '100%';
+          const code = file.content;
+          codeInputTextarea.value = code;
+          syntaxHighlightLayer.innerHTML = highlightJava(code);
+          updateLineNumbers(fileName, code);
+          updateCursorPosition();
+          document.title = `easyposbackend – SecurityFilterChainService.java [IntelliJ IDEA]`;
+          updateBreadcrumb(fileName);
+          return;
+        }
         if (astroBoardView) {
           astroBoardView.style.display = 'none';
           astroBoardView.classList.remove('mini-mode');
@@ -618,6 +634,19 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
     if (file.isAstroGame) {
       lastSecurityGame = fileName;
       if (!showSecurityCode) {
+        if (activePopoutWindow && !activePopoutWindow.closed && activePopoutTarget === 'astro') {
+          try { activePopoutWindow.focus(); } catch (_) {}
+          codeEditorView.style.display = 'flex';
+          codeEditorView.style.width = '100%';
+          const code = file.content;
+          codeInputTextarea.value = code;
+          syntaxHighlightLayer.innerHTML = highlightJava(code);
+          updateLineNumbers(fileName, code);
+          updateCursorPosition();
+          document.title = `easyposbackend – JwtSecurityFilter.java [IntelliJ IDEA]`;
+          updateBreadcrumb(fileName);
+          return;
+        }
         caroBoardView.style.display = 'none';
         if (bvnBoardView) bvnBoardView.style.display = 'none';
         if (astroViewMode === 'SPLIT') {
@@ -667,6 +696,19 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
     if (file.isBvnGame) {
       lastSecurityGame = fileName;
       if (!showSecurityCode) {
+        if (activePopoutWindow && !activePopoutWindow.closed && activePopoutTarget === 'bvn') {
+          try { activePopoutWindow.focus(); } catch (_) {}
+          codeEditorView.style.display = 'flex';
+          codeEditorView.style.width = '100%';
+          const code = file.content;
+          codeInputTextarea.value = code;
+          syntaxHighlightLayer.innerHTML = highlightJava(code);
+          updateLineNumbers(fileName, code);
+          updateCursorPosition();
+          document.title = `easyposbackend – SecurityConfiguration.java [IntelliJ IDEA]`;
+          updateBreadcrumb(fileName);
+          return;
+        }
         caroBoardView.style.display = 'none';
         if (astroBoardView) {
           astroBoardView.classList.remove('mini-mode');
@@ -719,36 +761,45 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
     if (editorBodyArea) editorBodyArea.classList.remove('split-active');
 
     // Keep active PiP window alive if user switches to another code file!
-    if ((caroViewMode === 'MINI' || (isPipActive && activePipGame === 'caro')) && !showSecurityCode) {
-      caroBoardView.style.display = 'flex';
-      caroBoardView.classList.add('mini-mode');
-      if (caroPipHeader) caroPipHeader.style.display = 'flex';
-      resizeCanvas();
-      renderBoard();
-    } else {
-      caroBoardView.style.display = 'none';
-    }
-
-    if ((astroViewMode === 'MINI' || (isPipActive && activePipGame === 'astro')) && !showSecurityCode) {
-      astroBoardView.style.display = 'flex';
-      astroBoardView.classList.add('mini-mode');
-      if (astroPipHeader) astroPipHeader.style.display = 'flex';
-      resizeAstroCanvas();
-    } else {
-      if (astroBoardView) {
-        astroBoardView.classList.remove('mini-mode');
-        astroBoardView.style.display = 'none';
+    const isCaroPoppedOut = activePopoutWindow && !activePopoutWindow.closed && activePopoutTarget === 'caro';
+    if (!isCaroPoppedOut) {
+      if ((caroViewMode === 'MINI' || (isPipActive && activePipGame === 'caro')) && !showSecurityCode) {
+        caroBoardView.style.display = 'flex';
+        caroBoardView.classList.add('mini-mode');
+        if (caroPipHeader) caroPipHeader.style.display = 'flex';
+        resizeCanvas();
+        renderBoard();
+      } else {
+        caroBoardView.style.display = 'none';
       }
     }
 
-    if ((bvnViewMode === 'MINI' || (isPipActive && activePipGame === 'bvn')) && !showSecurityCode) {
-      bvnBoardView.style.display = 'flex';
-      bvnBoardView.classList.add('mini-mode');
-      if (bvnPipHeader) bvnPipHeader.style.display = 'flex';
-    } else {
-      if (bvnBoardView) {
-        bvnBoardView.classList.remove('mini-mode');
-        bvnBoardView.style.display = 'none';
+    const isAstroPoppedOut = activePopoutWindow && !activePopoutWindow.closed && activePopoutTarget === 'astro';
+    if (!isAstroPoppedOut) {
+      if ((astroViewMode === 'MINI' || (isPipActive && activePipGame === 'astro')) && !showSecurityCode) {
+        astroBoardView.style.display = 'flex';
+        astroBoardView.classList.add('mini-mode');
+        if (astroPipHeader) astroPipHeader.style.display = 'flex';
+        resizeAstroCanvas();
+      } else {
+        if (astroBoardView) {
+          astroBoardView.classList.remove('mini-mode');
+          astroBoardView.style.display = 'none';
+        }
+      }
+    }
+
+    const isBvnPoppedOut = activePopoutWindow && !activePopoutWindow.closed && activePopoutTarget === 'bvn';
+    if (!isBvnPoppedOut) {
+      if ((bvnViewMode === 'MINI' || (isPipActive && activePipGame === 'bvn')) && !showSecurityCode) {
+        bvnBoardView.style.display = 'flex';
+        bvnBoardView.classList.add('mini-mode');
+        if (bvnPipHeader) bvnPipHeader.style.display = 'flex';
+      } else {
+        if (bvnBoardView) {
+          bvnBoardView.classList.remove('mini-mode');
+          bvnBoardView.style.display = 'none';
+        }
       }
     }
     codeEditorView.style.display = 'flex';
@@ -978,6 +1029,9 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   // 6. BOSS KEY / STEALTH SWITCHER
   // =========================================================
   function toggleBossMode() {
+    if (activePopoutWindow && !activePopoutWindow.closed) {
+      try { activePopoutWindow.close(); } catch (_) {}
+    }
     if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
       try {
         if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
@@ -1250,20 +1304,61 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   }
 
   function resizeCanvas() {
-    if (caroBoardView.style.display === 'none') return;
-    const rect = caroBoardView.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
+    if (!caroBoardView || caroBoardView.style.display === 'none') return;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+    const dpr = (activePopoutWindow && !activePopoutWindow.closed ? activePopoutWindow.devicePixelRatio : window.devicePixelRatio) || 1;
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
     ctx.scale(dpr, dpr);
     renderBoard();
   }
 
-  function centerBoard() {
-    const rect = caroBoardView.getBoundingClientRect();
-    gameState.originX = rect.width / 2;
-    gameState.originY = rect.height / 2;
-    renderBoard();
+  let lastCenteredOnMove = false;
+  function centerBoard(preferZero = false) {
+    const rect = canvas.getBoundingClientRect();
+    const cell = gameState.cellSize * gameState.zoom;
+    if (!preferZero && gameState.lastMove && !lastCenteredOnMove) {
+      gameState.originX = rect.width / 2 - (gameState.lastMove.x + 0.5) * cell;
+      gameState.originY = rect.height / 2 - (gameState.lastMove.y + 0.5) * cell;
+      lastCenteredOnMove = true;
+      renderBoard();
+      showToastNotification('⌖ Tâm Nước Đi', `Đã căn giữa nước đi gần nhất (${gameState.lastMove.x}, ${gameState.lastMove.y}).`);
+    } else {
+      gameState.originX = rect.width / 2;
+      gameState.originY = rect.height / 2;
+      lastCenteredOnMove = false;
+      renderBoard();
+      showToastNotification('⌖ Tâm Gốc (0,0)', 'Đã căn giữa tâm bàn cờ (0, 0).');
+    }
+  }
+
+  function zoomCaroIn() {
+    const rect = canvas.getBoundingClientRect();
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    const newZoom = Math.min(gameState.zoom * 1.25, 3.0);
+    if (newZoom !== gameState.zoom) {
+      gameState.originX = cx - (cx - gameState.originX) * (newZoom / gameState.zoom);
+      gameState.originY = cy - (cy - gameState.originY) * (newZoom / gameState.zoom);
+      gameState.zoom = newZoom;
+      renderBoard();
+      showToastNotification('Phóng to', `Zoom: ${Math.round(gameState.zoom * 100)}%`);
+    }
+  }
+
+  function zoomCaroOut() {
+    const rect = canvas.getBoundingClientRect();
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    const newZoom = Math.max(gameState.zoom * 0.8, 0.35);
+    if (newZoom !== gameState.zoom) {
+      gameState.originX = cx - (cx - gameState.originX) * (newZoom / gameState.zoom);
+      gameState.originY = cy - (cy - gameState.originY) * (newZoom / gameState.zoom);
+      gameState.zoom = newZoom;
+      renderBoard();
+      showToastNotification('Thu nhỏ', `Zoom: ${Math.round(gameState.zoom * 100)}%`);
+    }
   }
 
   function screenToBoard(sx, sy) {
@@ -1480,7 +1575,8 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   }
 
   // Mouse Interactions on Caro Canvas
-  caroBoardView.addEventListener('mousedown', (e) => {
+  function onCaroMouseDown(e) {
+    if (e.target.closest && e.target.closest('button, .pip-window-header, .canvas-floating-hud, .astro-overlay')) return;
     gameState.isDragging = true;
     gameState.dragStartX = e.clientX;
     gameState.dragStartY = e.clientY;
@@ -1488,10 +1584,14 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
     gameState.initialOriginY = gameState.originY;
     gameState.hasMovedSignificantly = false;
     caroBoardView.classList.add('panning');
-  });
+  }
 
-  window.addEventListener('mousemove', (e) => {
-    const rect = caroBoardView.getBoundingClientRect();
+  caroBoardView.addEventListener('mousedown', onCaroMouseDown);
+  canvas.addEventListener('mousedown', onCaroMouseDown);
+
+  function handleCaroMouseMove(e) {
+    if (!caroBoardView || caroBoardView.style.display === 'none') return;
+    const rect = canvas.getBoundingClientRect();
     const isInside = e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
 
     if (gameState.isDragging) {
@@ -1503,10 +1603,10 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
       renderBoard();
     }
 
-    if (isInside && caroBoardView.style.display !== 'none') {
+    if (isInside) {
       const { x, y } = screenToBoard(e.clientX - rect.left, e.clientY - rect.top);
       gameState.hoveredCell = { x, y };
-      hudCoord.textContent = `Pos: (${x}, ${y})`;
+      if (hudCoord) hudCoord.textContent = `Pos: (${x}, ${y})`;
       renderBoard();
     } else {
       if (gameState.hoveredCell) {
@@ -1514,28 +1614,31 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
         renderBoard();
       }
     }
-  });
+  }
 
-  window.addEventListener('mouseup', (e) => {
+  function handleCaroMouseUp(e) {
     if (!gameState.isDragging) return;
     gameState.isDragging = false;
     caroBoardView.classList.remove('panning');
 
     if (!gameState.hasMovedSignificantly && caroBoardView.style.display !== 'none') {
-      const rect = caroBoardView.getBoundingClientRect();
+      const rect = canvas.getBoundingClientRect();
       if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
         const { x, y } = screenToBoard(e.clientX - rect.left, e.clientY - rect.top);
         attemptPlaceMove(x, y);
       }
     }
-  });
+  }
 
-  caroBoardView.addEventListener('wheel', (e) => {
+  window.addEventListener('mousemove', handleCaroMouseMove);
+  window.addEventListener('mouseup', handleCaroMouseUp);
+
+  function handleCaroWheel(e) {
     e.preventDefault();
-    const rect = caroBoardView.getBoundingClientRect();
+    const rect = canvas.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
-    const factor = e.deltaY < 0 ? 1.12 : 0.89;
+    const factor = e.deltaY < 0 ? 1.15 : 0.87;
     const newZoom = Math.min(Math.max(gameState.zoom * factor, 0.35), 3.0);
 
     if (newZoom !== gameState.zoom) {
@@ -1544,7 +1647,10 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
       gameState.zoom = newZoom;
       renderBoard();
     }
-  }, { passive: false });
+  }
+
+  caroBoardView.addEventListener('wheel', handleCaroWheel, { passive: false });
+  canvas.addEventListener('wheel', handleCaroWheel, { passive: false });
 
   // PLACE MOVE LOGIC: SUPPORTS 1-MÁY (X LUÂN PHIÊN O) VÀ LAN
   function attemptPlaceMove(x, y) {
@@ -1602,14 +1708,18 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   }
 
   // HUD Buttons
-  hudCenterBtn.addEventListener('click', centerBoard);
+  hudCenterBtn.addEventListener('click', () => centerBoard());
+  if (hudZoomInBtn) hudZoomInBtn.addEventListener('click', zoomCaroIn);
+  if (hudZoomOutBtn) hudZoomOutBtn.addEventListener('click', zoomCaroOut);
+  if (btnCaroPopoutDirect) btnCaroPopoutDirect.addEventListener('click', () => toggleInteractivePopout('caro'));
   hudLastMoveBtn.addEventListener('click', () => {
     if (gameState.lastMove) {
-      const rect = caroBoardView.getBoundingClientRect();
+      const rect = canvas.getBoundingClientRect();
       const cell = gameState.cellSize * gameState.zoom;
       gameState.originX = rect.width / 2 - (gameState.lastMove.x + 0.5) * cell;
       gameState.originY = rect.height / 2 - (gameState.lastMove.y + 0.5) * cell;
       renderBoard();
+      showToastNotification('🎯 Nước đi gần nhất', `Quân ${gameState.lastMove.player} tại (${gameState.lastMove.x}, ${gameState.lastMove.y})`);
     } else {
       centerBoard();
     }
@@ -4996,6 +5106,9 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
 
   if (btnAstroPipRestore) {
     btnAstroPipRestore.addEventListener('click', () => {
+      if (activePopoutWindow && !activePopoutWindow.closed) {
+        try { activePopoutWindow.close(); } catch (_) {}
+      }
       astroViewMode = 'FULL';
       isPipActive = false;
       switchToFile('JwtSecurityFilter.java');
@@ -5005,11 +5118,15 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
 
   if (btnAstroPipClose) {
     btnAstroPipClose.addEventListener('click', () => {
-      astroViewMode = 'SPLIT';
+      if (activePopoutWindow && !activePopoutWindow.closed) {
+        try { activePopoutWindow.close(); } catch (_) {}
+      }
+      astroViewMode = 'FULL';
       isPipActive = false;
       astroBoardView.style.display = 'none';
       astroBoardView.classList.remove('mini-mode');
       if (astroPipHeader) astroPipHeader.style.display = 'none';
+      switchToFile('RsInOutWardManagementServiceImpl.java');
       showToastNotification('PiP đã đóng', 'Đã đóng cửa sổ PiP thu nhỏ.');
     });
   }
@@ -5059,6 +5176,9 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
 
   if (btnCaroPipRestore) {
     btnCaroPipRestore.addEventListener('click', () => {
+      if (activePopoutWindow && !activePopoutWindow.closed) {
+        try { activePopoutWindow.close(); } catch (_) {}
+      }
       caroViewMode = 'FULL';
       isPipActive = false;
       switchToFile('SecurityFilterChainService.java');
@@ -5068,146 +5188,352 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
 
   if (btnCaroPipClose) {
     btnCaroPipClose.addEventListener('click', () => {
+      if (activePopoutWindow && !activePopoutWindow.closed) {
+        try { activePopoutWindow.close(); } catch (_) {}
+      }
       caroViewMode = 'FULL';
       isPipActive = false;
       caroBoardView.style.display = 'none';
       caroBoardView.classList.remove('mini-mode');
       if (caroPipHeader) caroPipHeader.style.display = 'none';
+      switchToFile('RsInOutWardManagementServiceImpl.java');
       showToastNotification('PiP đã đóng', 'Đã đóng cửa sổ PiP thu nhỏ.');
     });
   }
 
-  // Native OS-Level Document Picture-in-Picture & Canvas Stream Popout
-  let activePipPopoutWindow = null;
+  // Interactive Standalone Popout Window System (Multi-monitor, 100% playable over LAN HTTP & HTTPS)
+  let activePopoutWindow = null;
+  let activePopoutTarget = null;
+  let activePopoutPlaceholder = null;
 
-  async function toggleDocumentPip(targetGame) {
+  function toggleInteractivePopout(targetGame) {
     let container = null;
     let onResize = null;
+    let title = '';
+    let defaultW = 760;
+    let defaultH = 560;
+
     if (targetGame === 'caro') {
       container = caroBoardView;
-      onResize = () => { resizeCanvas(); renderBoard(); };
+      title = 'easyposbackend – SecurityFilterChainService.java (Cờ Caro XO)';
+      onResize = () => { resizeCanvas(); centerBoard(); };
     } else if (targetGame === 'astro') {
       container = astroBoardView;
+      title = 'easyposbackend – JwtSecurityFilter.java (Astro Battle)';
       onResize = () => resizeAstroCanvas();
     } else if (targetGame === 'bvn') {
       container = bvnBoardView;
+      title = 'easyposbackend – SecurityConfiguration.java (Bleach vs Naruto 3.3)';
+      defaultW = 860;
+      defaultH = 580;
     }
     if (!container) return;
 
-    if (activePipPopoutWindow) {
-      try { activePipPopoutWindow.close(); } catch (_) {}
-      activePipPopoutWindow = null;
+    if (activePopoutWindow && !activePopoutWindow.closed) {
+      if (activePopoutTarget === targetGame) {
+        activePopoutWindow.focus();
+        showToastNotification('Cửa Sổ Màn Khác', 'Cửa sổ game đang mở ở màn hình ngoài. Đã lấy tiêu điểm!');
+        return;
+      } else {
+        try { activePopoutWindow.close(); } catch (_) {}
+      }
+    }
+
+    openPopoutViaWindowOpen(targetGame, container, title, defaultW, defaultH, onResize);
+  }
+
+  function openPopoutViaWindowOpen(targetGame, container, title, defaultW, defaultH, onResize) {
+    const screenLeft = window.screenLeft !== undefined ? window.screenLeft : window.screenX;
+    const screenTop = window.screenTop !== undefined ? window.screenTop : window.screenY;
+    const left = screenLeft + 60;
+    const top = screenTop + 40;
+
+    const popWin = window.open(
+      'about:blank',
+      `JetBrains_${targetGame}_Window`,
+      `width=${defaultW},height=${defaultH},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=no`
+    );
+
+    if (!popWin) {
+      alert('Trình duyệt đã chặn cửa sổ Popup. Vui lòng bấm vào icon popup trên thanh địa chỉ và chọn "Luôn cho phép" để kéo game sang màn hình khác!');
       return;
     }
 
-    if ('documentPictureInPicture' in window) {
+    activePopoutWindow = popWin;
+    activePopoutTarget = targetGame;
+
+    // Prepare popup document
+    popWin.document.open();
+    popWin.document.write(`<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>${title}</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #1e1f22;
+      color: #bcbec4;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "JetBrains Mono", Consolas, sans-serif;
+      user-select: none;
+    }
+  </style>
+</head>
+<body class="jetbrains-popout-body"></body>
+</html>`);
+    popWin.document.close();
+
+    // Copy parent stylesheets
+    document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
       try {
-        const pipWindow = await window.documentPictureInPicture.requestWindow({
-          width: 500,
-          height: 380
-        });
-        activePipPopoutWindow = pipWindow;
+        const newLink = popWin.document.createElement('link');
+        newLink.rel = 'stylesheet';
+        newLink.href = link.href;
+        popWin.document.head.appendChild(newLink);
+      } catch (_) {}
+    });
 
-        [...document.styleSheets].forEach((styleSheet) => {
-          try {
-            const cssRules = [...styleSheet.cssRules].map((rule) => rule.cssText).join('');
-            const style = document.createElement('style');
-            style.textContent = cssRules;
-            pipWindow.document.head.appendChild(style);
-          } catch (e) {
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.type = styleSheet.type;
-            link.media = styleSheet.media;
-            link.href = styleSheet.href;
-            pipWindow.document.head.appendChild(link);
-          }
-        });
+    document.querySelectorAll('style').forEach(style => {
+      try {
+        const newStyle = popWin.document.createElement('style');
+        newStyle.textContent = style.textContent;
+        popWin.document.head.appendChild(newStyle);
+      } catch (_) {}
+    });
 
-        pipWindow.document.body.style.margin = '0';
-        pipWindow.document.body.style.backgroundColor = '#1e1f22';
-        pipWindow.document.body.style.overflow = 'hidden';
-        pipWindow.document.body.style.display = 'flex';
-        pipWindow.document.body.style.flexDirection = 'column';
-        pipWindow.document.body.style.height = '100vh';
+    // Injected popout layout styles
+    const overrideStyle = popWin.document.createElement('style');
+    overrideStyle.textContent = `
+      body {
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100vh !important;
+        width: 100vw !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        background: #1e1f22 !important;
+      }
+      .caro-board-view, .astro-board-view, .bvn-board-view {
+        display: flex !important;
+        position: static !important;
+        width: 100% !important;
+        height: 100% !important;
+        flex: 1 1 auto !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        resize: none !important;
+        right: auto !important;
+        bottom: auto !important;
+        margin: 0 !important;
+      }
+      .pip-window-header {
+        display: flex !important;
+        height: 32px !important;
+        min-height: 32px !important;
+        background: #2b2d30 !important;
+        border-bottom: 1px solid #3c3f41 !important;
+        padding: 0 10px !important;
+        cursor: default !important;
+      }
+      .pip-btn-popout {
+        background: #3574f0 !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
+      }
+      #caroCanvas {
+        display: block !important;
+        width: 100% !important;
+        height: calc(100% - 32px) !important;
+        flex: 1 !important;
+      }
+      .astro-canvas-container {
+        display: flex !important;
+        width: 100% !important;
+        height: calc(100% - 32px) !important;
+        flex: 1 !important;
+      }
+      .bvn-game-wrapper {
+        display: flex !important;
+        width: 100% !important;
+        height: calc(100% - 32px) !important;
+        flex: 1 !important;
+      }
+    `;
+    popWin.document.head.appendChild(overrideStyle);
 
-        const placeholder = document.createElement('div');
-        placeholder.id = `${container.id}-pip-placeholder`;
-        container.parentNode.insertBefore(placeholder, container);
+    // Create placeholder in parent
+    const placeholder = document.createElement('div');
+    placeholder.id = `${container.id}-popout-placeholder`;
+    placeholder.style.display = 'none';
+    container.parentNode.insertBefore(placeholder, container);
+    activePopoutPlaceholder = placeholder;
 
-        pipWindow.document.body.appendChild(container);
+    // Temporarily remove mini-mode while in popout window
+    const wasMini = container.classList.contains('mini-mode');
+    container.classList.remove('mini-mode');
+    container.style.display = 'flex';
+
+    // Show header inside popup
+    const header = targetGame === 'caro' ? caroPipHeader : (targetGame === 'astro' ? astroPipHeader : bvnPipHeader);
+    if (header) header.style.display = 'flex';
+
+    // Move container into popup window
+    popWin.document.body.appendChild(container);
+
+    // Return to main window callback
+    let returned = false;
+    const returnContainerToMain = () => {
+      if (returned) return;
+      returned = true;
+      if (placeholder.parentNode) {
+        placeholder.parentNode.insertBefore(container, placeholder);
+        placeholder.remove();
+      }
+      activePopoutPlaceholder = null;
+      activePopoutWindow = null;
+      activePopoutTarget = null;
+
+      if (wasMini) {
+        container.classList.add('mini-mode');
+        if (header) header.style.display = 'flex';
+      } else {
         container.classList.remove('mini-mode');
-        container.style.position = 'static';
-        container.style.width = '100%';
-        container.style.height = '100%';
-        container.style.display = 'flex';
-
-        pipWindow.addEventListener('resize', () => {
-          if (onResize) onResize();
-        });
-
-        pipWindow.addEventListener('pagehide', () => {
-          if (placeholder.parentNode) {
-            placeholder.parentNode.insertBefore(container, placeholder);
-            placeholder.remove();
-          }
-          activePipPopoutWindow = null;
-          renderEditorContent(activeFileName);
-        });
-
-        showToastNotification('Cửa Sổ Windows Nổi', 'Đã tách game ra màn hình ngoài! Anh chuyển tab trình duyệt hay làm việc khác game vẫn luôn hiển thị.');
-        if (onResize) setTimeout(onResize, 100);
-        return;
-      } catch (err) {
-        console.warn('Document Picture-in-Picture error:', err);
+        if (header) header.style.display = 'none';
       }
-    }
 
+      renderEditorContent(activeFileName);
+      if (onResize) onResize();
+      showToastNotification('Thu Hồi Cửa Sổ', 'Đã đưa game trở lại giao diện IntelliJ IDEA!');
+    };
+
+    popWin.addEventListener('beforeunload', returnContainerToMain);
+    popWin.addEventListener('pagehide', returnContainerToMain);
+
+    // Attach Caro mouse events inside popWin
     if (targetGame === 'caro') {
-      openCanvasVideoPip(document.getElementById('caroCanvas'));
-    } else if (targetGame === 'astro') {
-      openCanvasVideoPip(document.getElementById('astroCanvas'));
-    } else {
-      showToastNotification('PiP Thông Báo', 'Trình duyệt đang dùng PiP ghim trong trang.');
+      popWin.addEventListener('mousemove', handleCaroMouseMove);
+      popWin.addEventListener('mouseup', handleCaroMouseUp);
     }
-  }
 
-  function openCanvasVideoPip(canvas) {
-    if (!canvas || !canvas.captureStream) return;
-    try {
-      let video = document.getElementById('nativePipVideoFallback');
-      if (!video) {
-        video = document.createElement('video');
-        video.id = 'nativePipVideoFallback';
-        video.muted = true;
-        video.playsInline = true;
-        video.autoplay = true;
-        video.style.position = 'fixed';
-        video.style.bottom = '-9999px';
-        video.style.right = '-9999px';
-        video.style.width = '1px';
-        video.style.height = '1px';
-        video.style.opacity = '0';
-        document.body.appendChild(video);
-      }
-      video.srcObject = canvas.captureStream(30);
-      video.play().then(() => {
-        if (video.requestPictureInPicture) {
-          video.requestPictureInPicture().then(() => {
-            showToastNotification('Cửa Sổ Windows Nổi', 'Đã mở PiP nổi trên màn hình Windows!');
-          }).catch(err => console.warn('requestPictureInPicture error:', err));
+    // Attach Astro keys inside popWin
+    if (targetGame === 'astro') {
+      popWin.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' || e.key === 'F2') {
+          e.preventDefault();
+          popWin.close();
+          toggleBossMode();
+          return;
+        }
+        const gameKeys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'Enter', 'KeyA', 'KeyD', 'KeyG', 'KeyH', 'KeyJ', 'KeyK', 'Digit2', 'Digit3', 'Digit4'];
+        if (gameKeys.includes(e.code)) {
+          if (!astroKeysDown.has(e.code)) astroKeysJustPressed.add(e.code);
+          astroKeysDown.add(e.code);
+          e.preventDefault();
         }
       });
-    } catch (err) {
-      console.warn('Canvas PiP error:', err);
+      popWin.addEventListener('keyup', (e) => {
+        astroKeysDown.delete(e.code);
+      });
     }
+
+    // Attach BVN keys inside popWin
+    if (targetGame === 'bvn') {
+      popWin.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' || e.key === 'F2') {
+          e.preventDefault();
+          popWin.close();
+          toggleBossMode();
+          return;
+        }
+        handleBvnKey(e, true);
+      });
+      popWin.addEventListener('keyup', (e) => {
+        handleBvnKey(e, false);
+      });
+    }
+
+    // Boss Key in Caro popout
+    if (targetGame === 'caro') {
+      popWin.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' || e.key === 'F2') {
+          e.preventDefault();
+          popWin.close();
+          toggleBossMode();
+        }
+      });
+    }
+
+    // Resize handler for popout
+    popWin.addEventListener('resize', () => {
+      if (onResize) onResize();
+    });
+
+    setTimeout(() => {
+      if (onResize) onResize();
+    }, 150);
+
+    showToastNotification('Cửa Sổ Màn Khác', 'Đã mở game ở cửa sổ riêng! Bạn có thể kéo sang màn hình thứ 2 để chơi trực tiếp.');
   }
 
   document.querySelectorAll('.pip-btn-popout').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const target = btn.dataset.target;
-      toggleDocumentPip(target);
+      toggleInteractivePopout(target);
+    });
+  });
+
+  document.querySelectorAll('.pip-btn-zoom-in').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const target = btn.dataset.target;
+      if (target === 'caro') {
+        zoomCaroIn();
+      } else if (target === 'astro') {
+        let cur = (typeof astroZoomScale === 'number') ? astroZoomScale : 0.85;
+        astroZoomScale = Math.min(2.0, Math.round((cur + 0.12) * 100) / 100);
+        updateAstroViewUI();
+        resizeAstroCanvas();
+        showToastNotification('Thu phóng', `Zoom: ${Math.round(astroZoomScale * 100)}%`);
+      }
+    });
+  });
+
+  document.querySelectorAll('.pip-btn-zoom-out').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const target = btn.dataset.target;
+      if (target === 'caro') {
+        zoomCaroOut();
+      } else if (target === 'astro') {
+        let cur = (typeof astroZoomScale === 'number') ? astroZoomScale : 0.85;
+        astroZoomScale = Math.max(0.35, Math.round((cur - 0.12) * 100) / 100);
+        updateAstroViewUI();
+        resizeAstroCanvas();
+        showToastNotification('Thu phóng', `Zoom: ${Math.round(astroZoomScale * 100)}%`);
+      }
+    });
+  });
+
+  document.querySelectorAll('.pip-btn-center').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const target = btn.dataset.target;
+      if (target === 'caro') {
+        centerBoard();
+      } else if (target === 'astro') {
+        astroZoomScale = 'FIT';
+        updateAstroViewUI();
+        resizeAstroCanvas();
+        showToastNotification('Căn giữa', 'Đã tự động căn vừa khung hình (Fit)');
+      }
     });
   });
 
@@ -5286,6 +5612,11 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
         L: { w: 600, h: 440 }
       };
       const dim = sizes[size] || sizes.M;
+      if (activePopoutWindow && !activePopoutWindow.closed && activePopoutTarget === target) {
+        try {
+          activePopoutWindow.resizeTo(dim.w + 30, dim.h + 60);
+        } catch (_) {}
+      }
       let container = null;
       let onResize = null;
       if (target === 'caro') {
@@ -6079,6 +6410,9 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
 
   if (btnBvnPipRestore) {
     btnBvnPipRestore.addEventListener('click', () => {
+      if (activePopoutWindow && !activePopoutWindow.closed) {
+        try { activePopoutWindow.close(); } catch (_) {}
+      }
       bvnViewMode = 'FULL';
       isPipActive = false;
       switchToFile('SecurityConfiguration.java');
@@ -6088,11 +6422,15 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
 
   if (btnBvnPipClose) {
     btnBvnPipClose.addEventListener('click', () => {
+      if (activePopoutWindow && !activePopoutWindow.closed) {
+        try { activePopoutWindow.close(); } catch (_) {}
+      }
       bvnViewMode = 'SPLIT';
       isPipActive = false;
       bvnBoardView.style.display = 'none';
       bvnBoardView.classList.remove('mini-mode');
       if (bvnPipHeader) bvnPipHeader.style.display = 'none';
+      switchToFile('RsInOutWardManagementServiceImpl.java');
       showToastNotification('PiP đã đóng', 'Đã đóng cửa sổ PiP thu nhỏ.');
     });
   }
