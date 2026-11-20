@@ -1315,7 +1315,7 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   }
 
   let lastCenteredOnMove = false;
-  function centerBoard(preferZero = false) {
+  function centerBoard(preferZero = false, silent = false) {
     const rect = canvas.getBoundingClientRect();
     const cell = gameState.cellSize * gameState.zoom;
     if (!preferZero && gameState.lastMove && !lastCenteredOnMove) {
@@ -1323,13 +1323,13 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
       gameState.originY = rect.height / 2 - (gameState.lastMove.y + 0.5) * cell;
       lastCenteredOnMove = true;
       renderBoard();
-      showToastNotification('⌖ Tâm Nước Đi', `Đã căn giữa nước đi gần nhất (${gameState.lastMove.x}, ${gameState.lastMove.y}).`);
+      if (!silent) showToastNotification('⌖ Tâm Nước Đi', `Đã căn giữa nước đi gần nhất (${gameState.lastMove.x}, ${gameState.lastMove.y}).`);
     } else {
       gameState.originX = rect.width / 2;
       gameState.originY = rect.height / 2;
       lastCenteredOnMove = false;
       renderBoard();
-      showToastNotification('⌖ Tâm Gốc (0,0)', 'Đã căn giữa tâm bàn cờ (0, 0).');
+      if (!silent) showToastNotification('⌖ Tâm Gốc (0,0)', 'Đã căn giữa tâm bàn cờ (0, 0).');
     }
   }
 
@@ -1711,7 +1711,12 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   hudCenterBtn.addEventListener('click', () => centerBoard());
   if (hudZoomInBtn) hudZoomInBtn.addEventListener('click', zoomCaroIn);
   if (hudZoomOutBtn) hudZoomOutBtn.addEventListener('click', zoomCaroOut);
-  if (btnCaroPopoutDirect) btnCaroPopoutDirect.addEventListener('click', () => toggleInteractivePopout('caro'));
+  if (btnCaroPopoutDirect) {
+    btnCaroPopoutDirect.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openPopoutViaWindowOpen('caro', caroBoardView, 'easyposbackend – SecurityFilterChainService.java (Cờ Caro XO)', 760, 560, () => { resizeCanvas(); centerBoard(false, true); });
+    });
+  }
   hudLastMoveBtn.addEventListener('click', () => {
     if (gameState.lastMove) {
       const rect = canvas.getBoundingClientRect();
@@ -5088,23 +5093,13 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   }
 
   if (btnAstroPip) {
-    btnAstroPip.addEventListener('click', () => {
+    btnAstroPip.addEventListener('click', (e) => {
+      e.stopPropagation();
       if ('documentPictureInPicture' in window && window.isSecureContext) {
-        toggleInteractivePopout('astro');
+        toggleInteractivePopout('astro', 'docpip');
         return;
       }
-      if (astroViewMode === 'MINI' || isPipActive) {
-        astroViewMode = 'SPLIT';
-        isPipActive = false;
-        showToastNotification('Picture-in-Picture', 'Đã thoát chế độ PiP.');
-      } else {
-        astroViewMode = 'MINI';
-        isPipActive = true;
-        activePipGame = 'astro';
-        showToastNotification('PiP Trong Tab', 'Đã bật PiP góc màn hình. (Để kéo sang màn hình khác không bị mất: bấm nút "↗ Màn Khác" ngay trên thanh PiP!)');
-      }
-      updateAstroViewUI();
-      renderEditorContent(activeFileName);
+      openPopoutViaWindowOpen('astro', astroBoardView, 'easyposbackend – JwtSecurityFilter.java (Astro Battle)', 760, 560, () => resizeAstroCanvas());
     });
   }
 
@@ -5162,23 +5157,13 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   }
 
   if (btnCaroPip) {
-    btnCaroPip.addEventListener('click', () => {
+    btnCaroPip.addEventListener('click', (e) => {
+      e.stopPropagation();
       if ('documentPictureInPicture' in window && window.isSecureContext) {
-        toggleInteractivePopout('caro');
+        toggleInteractivePopout('caro', 'docpip');
         return;
       }
-      if (caroViewMode === 'MINI' || isPipActive) {
-        caroViewMode = 'FULL';
-        isPipActive = false;
-        showToastNotification('Picture-in-Picture', 'Đã thoát chế độ PiP (Mở rộng toàn màn hình).');
-      } else {
-        caroViewMode = 'MINI';
-        isPipActive = true;
-        activePipGame = 'caro';
-        showToastNotification('PiP Trong Tab', 'Đã bật PiP góc màn hình. (Để kéo sang màn hình khác không bị mất: bấm nút "↗ Màn Khác" ngay trên thanh PiP!)');
-      }
-      updateAstroViewUI();
-      renderEditorContent(activeFileName);
+      openPopoutViaWindowOpen('caro', caroBoardView, 'easyposbackend – SecurityFilterChainService.java (Cờ Caro XO)', 760, 560, () => { resizeCanvas(); centerBoard(false, true); });
     });
   }
 
@@ -5215,7 +5200,42 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   let activePopoutPlaceholder = null;
   let popoutClosedCheckInterval = null;
 
-  async function toggleInteractivePopout(targetGame) {
+  // Popup Blocked Guide Modal Handlers
+  const modalPopupBlockedBackdrop = document.getElementById('modalPopupBlockedBackdrop');
+  const btnClosePopupBlockedModal = document.getElementById('btnClosePopupBlockedModal');
+  const btnCancelPopupBlockedModal = document.getElementById('btnCancelPopupBlockedModal');
+  const btnRetryPopupBlockedModal = document.getElementById('btnRetryPopupBlockedModal');
+  let pendingPopoutTarget = 'caro';
+
+  function showPopupBlockedModal(targetGame = 'caro') {
+    pendingPopoutTarget = targetGame;
+    if (modalPopupBlockedBackdrop) {
+      modalPopupBlockedBackdrop.style.display = 'flex';
+    }
+  }
+
+  function closePopupBlockedModal() {
+    if (modalPopupBlockedBackdrop) {
+      modalPopupBlockedBackdrop.style.display = 'none';
+    }
+  }
+
+  if (btnClosePopupBlockedModal) btnClosePopupBlockedModal.addEventListener('click', closePopupBlockedModal);
+  if (btnCancelPopupBlockedModal) btnCancelPopupBlockedModal.addEventListener('click', closePopupBlockedModal);
+  if (btnRetryPopupBlockedModal) {
+    btnRetryPopupBlockedModal.addEventListener('click', () => {
+      closePopupBlockedModal();
+      if (pendingPopoutTarget === 'caro') {
+        openPopoutViaWindowOpen('caro', caroBoardView, 'easyposbackend – SecurityFilterChainService.java (Cờ Caro XO)', 760, 560, () => { resizeCanvas(); centerBoard(false, true); });
+      } else if (pendingPopoutTarget === 'astro') {
+        openPopoutViaWindowOpen('astro', astroBoardView, 'easyposbackend – JwtSecurityFilter.java (Astro Battle)', 760, 560, () => resizeAstroCanvas());
+      } else if (pendingPopoutTarget === 'bvn') {
+        openPopoutViaWindowOpen('bvn', bvnBoardView, 'easyposbackend – SecurityConfiguration.java (Bleach vs Naruto 3.3)', 860, 580, null);
+      }
+    });
+  }
+
+  async function toggleInteractivePopout(targetGame, preferredMode = null) {
     let container = null;
     let onResize = null;
     let title = '';
@@ -5225,7 +5245,7 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
     if (targetGame === 'caro') {
       container = caroBoardView;
       title = 'easyposbackend – SecurityFilterChainService.java (Cờ Caro XO)';
-      onResize = () => { resizeCanvas(); centerBoard(); };
+      onResize = () => { resizeCanvas(); centerBoard(false, true); };
     } else if (targetGame === 'astro') {
       container = astroBoardView;
       title = 'easyposbackend – JwtSecurityFilter.java (Astro Battle)';
@@ -5249,9 +5269,9 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
       }
     }
 
-    // PRIORITY 1: Try Document Picture-in-Picture (Always-On-Top, never hides behind VS Code/IntelliJ!)
-    // Supported on HTTPS (Tunnel: https://yellow-eels-teach.loca.lt) and localhost
-    if ('documentPictureInPicture' in window && window.isSecureContext) {
+    // PRIORITY 1: Try Document Picture-in-Picture (Always-On-Top native OS window)
+    // Only available in Secure Contexts (HTTPS, localhost, or Chrome flag enabled)
+    if (preferredMode !== 'popup' && ('documentPictureInPicture' in window && window.isSecureContext)) {
       try {
         const pipWin = await window.documentPictureInPicture.requestWindow({
           width: defaultW,
@@ -5260,7 +5280,7 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
         setupPopoutContent(pipWin, targetGame, container, title, defaultW, defaultH, onResize, true);
         return;
       } catch (err) {
-        console.warn('Document Picture-in-Picture request failed, falling back to window.open:', err);
+        console.warn('Document Picture-in-Picture request failed, opening standalone popup instead:', err);
       }
     }
 
@@ -5319,7 +5339,8 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
       }
       .caro-board-view, .astro-board-view, .bvn-board-view {
         display: flex !important;
-        position: static !important;
+        flex-direction: column !important;
+        position: relative !important;
         width: 100% !important;
         height: 100% !important;
         flex: 1 1 auto !important;
@@ -5419,15 +5440,19 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
       // In Document Picture-in-Picture, pagehide fires strictly when the PiP window is closed
       popWin.addEventListener('pagehide', returnContainerToMain);
     } else {
-      // In window.open, DO NOT use pagehide/beforeunload because tab switching triggers them!
-      // Instead, poll popWin.closed which ONLY becomes true when the user actually closes the window!
+      // In window.open, poll popWin.closed with grace period to prevent initial false positives
+      let checkCount = 0;
       popoutClosedCheckInterval = setInterval(() => {
-        if (!popWin || popWin.closed) {
-          clearInterval(popoutClosedCheckInterval);
-          popoutClosedCheckInterval = null;
-          returnContainerToMain();
-        }
-      }, 400);
+        checkCount++;
+        if (checkCount < 3) return; // Grace period during window setup
+        try {
+          if (!popWin || popWin.closed) {
+            clearInterval(popoutClosedCheckInterval);
+            popoutClosedCheckInterval = null;
+            returnContainerToMain();
+          }
+        } catch (_) {}
+      }, 500);
     }
 
     // Attach Caro mouse events inside popWin
@@ -5493,39 +5518,51 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
       if (onResize) onResize();
     }, 150);
 
-    const modeText = isDocPip ? 'PiP Nổi Trên Cùng (Always on Top)' : 'Cửa Sổ Rời Popup';
-    showToastNotification(modeText, isDocPip
+    const modeText = isDocPip ? '📺 PiP Luôn Nổi (Always on Top)' : '↗ Cửa Sổ Rời (Màn Hình 2)';
+    const modeDesc = isDocPip
       ? 'Đã mở cửa sổ PiP nổi trên cùng! Khi anh bật code hay tab sang app khác, game luôn hiển thị ở trên.'
-      : 'Đã mở game ở cửa sổ riêng! Bạn có thể kéo sang màn hình thứ 2 để chơi trực tiếp.');
+      : 'Đã mở game ở cửa sổ riêng! Bạn có thể kéo sang màn hình thứ 2 hoặc để cạnh code để chơi trực tiếp.';
+    showToastNotification(modeText, modeDesc);
   }
 
   function openPopoutViaWindowOpen(targetGame, container, title, defaultW, defaultH, onResize) {
+    if (activePopoutWindow && !activePopoutWindow.closed) {
+      if (activePopoutTarget === targetGame) {
+        try { activePopoutWindow.focus(); } catch (_) {}
+        showToastNotification('Cửa Sổ Nổi', 'Cửa sổ game đang mở. Đã đưa lên phía trước!');
+        return;
+      } else {
+        try { activePopoutWindow.close(); } catch (_) {}
+      }
+    }
+
     const screenLeft = window.screenLeft !== undefined ? window.screenLeft : window.screenX;
     const screenTop = window.screenTop !== undefined ? window.screenTop : window.screenY;
-    const left = screenLeft + 60;
-    const top = screenTop + 40;
+    const left = Math.max(10, screenLeft + 60);
+    const top = Math.max(10, screenTop + 40);
 
-    const popWin = window.open(
-      'about:blank',
-      `JetBrains_${targetGame}_Window`,
-      `width=${defaultW},height=${defaultH},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=no`
-    );
+    let popWin = null;
+    try {
+      popWin = window.open(
+        'about:blank',
+        '_blank',
+        `width=${defaultW},height=${defaultH},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=no`
+      );
+    } catch (err) {
+      console.warn('window.open exception:', err);
+    }
 
-    if (!popWin) {
-      alert('Trình duyệt đã chặn cửa sổ Popup. Vui lòng bấm vào icon popup trên thanh địa chỉ và chọn "Luôn cho phép" để kéo game sang màn hình khác!');
+    if (!popWin || popWin.closed) {
+      showPopupBlockedModal(targetGame);
       return;
     }
 
-    popWin.document.open();
-    popWin.document.write(`<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="UTF-8">
-  <title>${title}</title>
-</head>
-<body class="jetbrains-popout-body"></body>
-</html>`);
-    popWin.document.close();
+    try {
+      popWin.document.title = title;
+    } catch (_) {}
+    try {
+      popWin.focus();
+    } catch (_) {}
 
     setupPopoutContent(popWin, targetGame, container, title, defaultW, defaultH, onResize, false);
   }
@@ -5534,7 +5571,13 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const target = btn.dataset.target;
-      toggleInteractivePopout(target);
+      if (target === 'caro') {
+        openPopoutViaWindowOpen('caro', caroBoardView, 'easyposbackend – SecurityFilterChainService.java (Cờ Caro XO)', 760, 560, () => { resizeCanvas(); centerBoard(false, true); });
+      } else if (target === 'astro') {
+        openPopoutViaWindowOpen('astro', astroBoardView, 'easyposbackend – JwtSecurityFilter.java (Astro Battle)', 760, 560, () => resizeAstroCanvas());
+      } else if (target === 'bvn') {
+        openPopoutViaWindowOpen('bvn', bvnBoardView, 'easyposbackend – SecurityConfiguration.java (Bleach vs Naruto 3.3)', 860, 580, null);
+      }
     });
   });
 
@@ -6440,19 +6483,13 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   }
 
   if (btnBvnPip) {
-    btnBvnPip.addEventListener('click', () => {
-      if (bvnViewMode === 'MINI' || isPipActive) {
-        bvnViewMode = 'SPLIT';
-        isPipActive = false;
-        showToastNotification('Picture-in-Picture', 'Đã thoát chế độ PiP.');
+    btnBvnPip.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if ('documentPictureInPicture' in window && window.isSecureContext) {
+        toggleInteractivePopout('bvn', 'docpip');
       } else {
-        bvnViewMode = 'MINI';
-        isPipActive = true;
-        activePipGame = 'bvn';
-        showToastNotification('Picture-in-Picture', 'Đã bật PiP: Game sẽ luôn hiển thị ở góc màn hình kể cả khi anh đổi sang bất kỳ tab code nào!');
+        openPopoutViaWindowOpen('bvn', bvnBoardView, 'easyposbackend – SecurityConfiguration.java (Bleach vs Naruto 3.3)', 860, 580, null);
       }
-      renderEditorContent(activeFileName);
-      updateBvnViewUI();
     });
   }
 
@@ -6588,7 +6625,7 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   function init() {
     renderTabs();
     switchToFile('RsInOutWardManagementServiceImpl.java');
-    centerBoard();
+    centerBoard(false, true);
     resizeAstroCanvas();
     fetchServerInfo();
     connectWebSocket();

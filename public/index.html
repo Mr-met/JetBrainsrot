@@ -599,6 +599,35 @@
               </div>
             </div>
           </div>
+
+          <!-- MODAL HƯỚNG DẪN MỞ POPUP NẾU TRÌNH DUYỆT CHẶN -->
+          <div class="astro-modal-backdrop" id="modalPopupBlockedBackdrop" style="display: none; z-index: 9999;">
+            <div class="astro-modal-dialog" style="max-width: 540px;">
+              <div class="modal-dialog-header">
+                <h3 class="modal-title">🚫 Trình Duyệt Đang Chặn Cửa Sổ Bật Lên (Popup)</h3>
+                <button class="modal-close-btn" id="btnClosePopupBlockedModal">✕</button>
+              </div>
+              <div class="modal-dialog-body" style="font-size: 13px; line-height: 1.6; color: #bcbec4;">
+                <p style="margin-bottom: 12px; font-weight: 500;">Để kéo game sang màn hình khác và chơi mượt mà khi chuyển sang ứng dụng khác:</p>
+                <div style="background: #2b2d30; border: 1px solid #3c3f41; border-radius: 6px; padding: 12px 14px; margin-bottom: 14px;">
+                  <div style="margin-bottom: 8px; color: #e5c07b;"><strong>👉 Cách bật trong 3 giây:</strong></div>
+                  <ol style="margin: 0; padding-left: 20px;">
+                    <li>Nhìn lên góc trên bên phải thanh địa chỉ URL trình duyệt (chỗ thanh link web).</li>
+                    <li>Bấm vào biểu tượng <strong>Cửa sổ bật lên bị chặn (🚫 hoặc 🗖)</strong>.</li>
+                    <li>Chọn <strong>"Luôn cho phép cửa sổ bật lên và liên kết chuyển hướng..."</strong>.</li>
+                    <li>Bấm nút <strong>"Xong"</strong> rồi bấm lại nút <strong>"↗ Màn Khác"</strong>!</li>
+                  </ol>
+                </div>
+                <div style="font-size: 12px; color: #8ac0ff;">
+                  💡 <em>Gợi ý: Cửa sổ mở ra là cửa sổ độc lập, bạn có thể kéo sang màn hình thứ 2, chia đôi màn hình hoặc dùng phím tắt PowerToys (Win + Ctrl + T) để ghim luôn nổi trên cùng!</em>
+                </div>
+              </div>
+              <div class="modal-dialog-footer">
+                <button class="astro-btn astro-btn-secondary" id="btnCancelPopupBlockedModal">Đóng</button>
+                <button class="astro-btn astro-btn-primary" id="btnRetryPopupBlockedModal">Bấm Để Mở Cửa Sổ Ngay</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- 3. RETRO ARCADE ASTRO PARTY VIEW (DISGUISED IN JwtSecurityFilter.java) -->
