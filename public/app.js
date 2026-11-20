@@ -5205,8 +5205,9 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   let activePopoutWindow = null;
   let activePopoutTarget = null;
   let activePopoutPlaceholder = null;
+  let popoutClosedCheckInterval = null;
 
-  function toggleInteractivePopout(targetGame) {
+  async function toggleInteractivePopout(targetGame) {
     let container = null;
     let onResize = null;
     let title = '';
@@ -5229,64 +5230,49 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
     }
     if (!container) return;
 
+    // If popout is already open
     if (activePopoutWindow && !activePopoutWindow.closed) {
       if (activePopoutTarget === targetGame) {
-        activePopoutWindow.focus();
-        showToastNotification('Cửa Sổ Màn Khác', 'Cửa sổ game đang mở ở màn hình ngoài. Đã lấy tiêu điểm!');
+        try { activePopoutWindow.focus(); } catch (_) {}
+        showToastNotification('Cửa Sổ Nổi', 'Cửa sổ game đang mở. Đã đưa lên phía trước!');
         return;
       } else {
         try { activePopoutWindow.close(); } catch (_) {}
       }
     }
 
+    // PRIORITY 1: Try Document Picture-in-Picture (Always-On-Top, never hides behind VS Code/IntelliJ!)
+    // Supported on HTTPS (Tunnel: https://yellow-eels-teach.loca.lt) and localhost
+    if ('documentPictureInPicture' in window && window.isSecureContext) {
+      try {
+        const pipWin = await window.documentPictureInPicture.requestWindow({
+          width: defaultW,
+          height: defaultH
+        });
+        setupPopoutContent(pipWin, targetGame, container, title, defaultW, defaultH, onResize, true);
+        return;
+      } catch (err) {
+        console.warn('Document Picture-in-Picture request failed, falling back to window.open:', err);
+      }
+    }
+
+    // PRIORITY 2: Universal Fallback via window.open (Works on HTTP LAN 192.168.x.x, all browsers)
     openPopoutViaWindowOpen(targetGame, container, title, defaultW, defaultH, onResize);
   }
 
-  function openPopoutViaWindowOpen(targetGame, container, title, defaultW, defaultH, onResize) {
-    const screenLeft = window.screenLeft !== undefined ? window.screenLeft : window.screenX;
-    const screenTop = window.screenTop !== undefined ? window.screenTop : window.screenY;
-    const left = screenLeft + 60;
-    const top = screenTop + 40;
-
-    const popWin = window.open(
-      'about:blank',
-      `JetBrains_${targetGame}_Window`,
-      `width=${defaultW},height=${defaultH},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=no`
-    );
-
-    if (!popWin) {
-      alert('Trình duyệt đã chặn cửa sổ Popup. Vui lòng bấm vào icon popup trên thanh địa chỉ và chọn "Luôn cho phép" để kéo game sang màn hình khác!');
-      return;
-    }
-
+  function setupPopoutContent(popWin, targetGame, container, title, defaultW, defaultH, onResize, isDocPip) {
     activePopoutWindow = popWin;
     activePopoutTarget = targetGame;
 
-    // Prepare popup document
-    popWin.document.open();
-    popWin.document.write(`<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="UTF-8">
-  <title>${title}</title>
-  <style>
-    * { box-sizing: border-box; }
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-      background-color: #1e1f22;
-      color: #bcbec4;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "JetBrains Mono", Consolas, sans-serif;
-      user-select: none;
+    if (popoutClosedCheckInterval) {
+      clearInterval(popoutClosedCheckInterval);
+      popoutClosedCheckInterval = null;
     }
-  </style>
-</head>
-<body class="jetbrains-popout-body"></body>
-</html>`);
-    popWin.document.close();
+
+    // Set title if accessible
+    try {
+      popWin.document.title = title;
+    } catch (_) {}
 
     // Copy parent stylesheets
     document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
@@ -5309,7 +5295,8 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
     // Injected popout layout styles
     const overrideStyle = popWin.document.createElement('style');
     overrideStyle.textContent = `
-      body {
+      * { box-sizing: border-box; }
+      html, body {
         display: flex !important;
         flex-direction: column !important;
         height: 100vh !important;
@@ -5318,6 +5305,9 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
         padding: 0 !important;
         overflow: hidden !important;
         background: #1e1f22 !important;
+        color: #bcbec4 !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "JetBrains Mono", Consolas, sans-serif !important;
+        user-select: none !important;
       }
       .caro-board-view, .astro-board-view, .bvn-board-view {
         display: flex !important;
@@ -5392,6 +5382,10 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
     const returnContainerToMain = () => {
       if (returned) return;
       returned = true;
+      if (popoutClosedCheckInterval) {
+        clearInterval(popoutClosedCheckInterval);
+        popoutClosedCheckInterval = null;
+      }
       if (placeholder.parentNode) {
         placeholder.parentNode.insertBefore(container, placeholder);
         placeholder.remove();
@@ -5413,8 +5407,20 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
       showToastNotification('Thu Hồi Cửa Sổ', 'Đã đưa game trở lại giao diện IntelliJ IDEA!');
     };
 
-    popWin.addEventListener('beforeunload', returnContainerToMain);
-    popWin.addEventListener('pagehide', returnContainerToMain);
+    if (isDocPip) {
+      // In Document Picture-in-Picture, pagehide fires strictly when the PiP window is closed
+      popWin.addEventListener('pagehide', returnContainerToMain);
+    } else {
+      // In window.open, DO NOT use pagehide/beforeunload because tab switching triggers them!
+      // Instead, poll popWin.closed which ONLY becomes true when the user actually closes the window!
+      popoutClosedCheckInterval = setInterval(() => {
+        if (!popWin || popWin.closed) {
+          clearInterval(popoutClosedCheckInterval);
+          popoutClosedCheckInterval = null;
+          returnContainerToMain();
+        }
+      }, 400);
+    }
 
     // Attach Caro mouse events inside popWin
     if (targetGame === 'caro') {
@@ -5427,7 +5433,7 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
       popWin.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' || e.key === 'F2') {
           e.preventDefault();
-          popWin.close();
+          try { popWin.close(); } catch (_) {}
           toggleBossMode();
           return;
         }
@@ -5448,7 +5454,7 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
       popWin.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' || e.key === 'F2') {
           e.preventDefault();
-          popWin.close();
+          try { popWin.close(); } catch (_) {}
           toggleBossMode();
           return;
         }
@@ -5464,7 +5470,7 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
       popWin.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' || e.key === 'F2') {
           e.preventDefault();
-          popWin.close();
+          try { popWin.close(); } catch (_) {}
           toggleBossMode();
         }
       });
@@ -5479,7 +5485,41 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
       if (onResize) onResize();
     }, 150);
 
-    showToastNotification('Cửa Sổ Màn Khác', 'Đã mở game ở cửa sổ riêng! Bạn có thể kéo sang màn hình thứ 2 để chơi trực tiếp.');
+    const modeText = isDocPip ? 'PiP Nổi Trên Cùng (Always on Top)' : 'Cửa Sổ Rời Popup';
+    showToastNotification(modeText, isDocPip
+      ? 'Đã mở cửa sổ PiP nổi trên cùng! Khi anh bật code hay tab sang app khác, game luôn hiển thị ở trên.'
+      : 'Đã mở game ở cửa sổ riêng! Bạn có thể kéo sang màn hình thứ 2 để chơi trực tiếp.');
+  }
+
+  function openPopoutViaWindowOpen(targetGame, container, title, defaultW, defaultH, onResize) {
+    const screenLeft = window.screenLeft !== undefined ? window.screenLeft : window.screenX;
+    const screenTop = window.screenTop !== undefined ? window.screenTop : window.screenY;
+    const left = screenLeft + 60;
+    const top = screenTop + 40;
+
+    const popWin = window.open(
+      'about:blank',
+      `JetBrains_${targetGame}_Window`,
+      `width=${defaultW},height=${defaultH},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=no`
+    );
+
+    if (!popWin) {
+      alert('Trình duyệt đã chặn cửa sổ Popup. Vui lòng bấm vào icon popup trên thanh địa chỉ và chọn "Luôn cho phép" để kéo game sang màn hình khác!');
+      return;
+    }
+
+    popWin.document.open();
+    popWin.document.write(`<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>${title}</title>
+</head>
+<body class="jetbrains-popout-body"></body>
+</html>`);
+    popWin.document.close();
+
+    setupPopoutContent(popWin, targetGame, container, title, defaultW, defaultH, onResize, false);
   }
 
   document.querySelectorAll('.pip-btn-popout').forEach(btn => {
