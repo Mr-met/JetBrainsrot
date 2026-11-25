@@ -461,7 +461,7 @@
               <button class="pip-btn pip-btn-size" data-target="caro" data-size="S" title="Cỡ nhỏ (320x240)">S</button>
               <button class="pip-btn pip-btn-size" data-target="caro" data-size="M" title="Cỡ vừa (440x330)">M</button>
               <button class="pip-btn pip-btn-size" data-target="caro" data-size="L" title="Cỡ lớn (580x435)">L</button>
-              <button class="pip-btn pip-btn-popout" data-target="caro" title="Mở cửa sổ riêng (Popup) - Kéo sang màn hình thứ 2 chơi trực tiếp">↗ Màn Khác</button>
+              <button class="pip-btn pip-btn-popout" data-target="caro" title="Đưa ra cửa sổ PiP luôn nổi trên mọi ứng dụng (YouTube, Game,...)">📌 Nổi Trên YouTube</button>
               <button class="pip-btn pip-btn-restore" id="btnCaroPipRestore" title="Phóng to lại màn hình chính">🗖</button>
               <button class="pip-btn pip-btn-close" id="btnCaroPipClose" title="Ẩn về code Java (Boss Key)">✕</button>
             </div>
@@ -473,8 +473,8 @@
           <div class="canvas-floating-hud">
             <button class="hud-btn hud-mode-btn" id="btnCaroLobbyToggle" title="Mở Sảnh Chọn Phòng Cờ XO">🛸 Sảnh Phòng XO</button>
             <button class="hud-btn hud-mode-btn" id="btnCaroSplit" title="Chia đôi màn hình: Bên trái Code Java, Bên phải Game Caro">⊞ Chia Đôi: 50/50</button>
-            <button class="hud-btn hud-mode-btn" id="btnCaroPip" title="Thu nhỏ Picture-in-Picture góc màn hình giống YouTube">📺 PiP (Thu Nhỏ)</button>
-            <button class="hud-btn hud-mode-btn" id="btnCaroPopoutDirect" title="Mở cửa sổ riêng để kéo sang màn hình thứ 2 chơi trực tiếp">↗ Màn Khác (Popup)</button>
+            <button class="hud-btn hud-mode-btn" id="btnCaroPip" title="Thu nhỏ bàn cờ góc dưới màn hình code IDE">📺 PiP Trong IDE</button>
+            <button class="hud-btn hud-mode-btn" id="btnCaroPopoutDirect" title="Mở cửa sổ PiP luôn nổi trên cùng (Always-on-Top) để vừa xem YouTube vừa đánh cờ!">📌 PiP Nổi Trên YouTube</button>
             <div class="hud-pill" id="caroHudRoomName">Phòng: Đại Sảnh</div>
             <div class="hud-pill" id="caroHudRole" style="color: #3574f0; font-weight: bold;">Bạn: Quân X</div>
             <div class="hud-pill" id="hudCoord">Pos: (0, 0)</div>
@@ -600,6 +600,65 @@
             </div>
           </div>
 
+          <!-- MODAL HƯỚNG DẪN BẬT PiP LUÔN NỔI (XEM YOUTUBE) -->
+          <div class="astro-modal-backdrop" id="modalPipYoutubeBackdrop" style="display: none; z-index: 9999;">
+            <div class="astro-modal-dialog" style="max-width: 580px;">
+              <div class="modal-dialog-header">
+                <h3 class="modal-title">📌 Bật PiP Luôn Nổi Để Vừa Xem YouTube Vừa Chơi</h3>
+                <button class="modal-close-btn" id="btnClosePipYoutubeModal">✕</button>
+              </div>
+              <div class="modal-dialog-body" style="font-size: 13px; line-height: 1.6; color: #bcbec4;">
+                <p style="margin-bottom: 12px; font-weight: 500; color: #ffffff;">
+                  Anh muốn tab sang YouTube xem video mà bàn cờ XO vẫn <strong style="color: #3574f0;">ghim luôn nổi trên cùng (Always-on-Top)</strong>?
+                </p>
+                <p style="margin-bottom: 12px;">
+                  Trình duyệt Chrome chỉ cho phép tính năng Ghim Nổi (Document PiP) hoạt động khi truy cập qua <strong>localhost</strong> hoặc <strong>HTTPS</strong>. Do anh đang mở bằng IP <code style="background: #2b2d30; padding: 2px 6px; border-radius: 4px; color: #e5c07b;">192.168.1.82</code> (HTTP thường) nên Chrome tạm khóa tính năng Always-on-top.
+                </p>
+
+                <div style="background: #2b2d30; border: 1px solid #3574f0; border-radius: 6px; padding: 12px 14px; margin-bottom: 12px;">
+                  <div style="margin-bottom: 6px; color: #3574f0; font-weight: bold; font-size: 14px;">
+                    ⭐ Cách 1: Chuyển sang "http://localhost" (1 click - Khuyên dùng)
+                  </div>
+                  <p style="margin: 0 0 10px 0; font-size: 12.5px;">
+                    Nếu anh đang chơi trên chính máy tính này, mở qua <code>http://localhost</code> sẽ có sẵn tính năng PiP luôn nổi 100% không cần cài đặt gì thêm!
+                  </p>
+                  <button class="astro-btn astro-btn-primary" id="btnSwitchToLocalhost" style="width: 100%; justify-content: center;">
+                    👉 Bấm Vào Đây Để Mở Bằng "http://localhost" (Khuyên dùng)
+                  </button>
+                </div>
+
+                <div style="background: #2b2d30; border: 1px solid #3c3f41; border-radius: 6px; padding: 12px 14px; margin-bottom: 12px;">
+                  <div style="margin-bottom: 6px; color: #e5c07b; font-weight: bold;">
+                    🌐 Cách 2: Dùng Link HTTPS Online (Nếu chơi từ máy khác)
+                  </div>
+                  <p style="margin: 0 0 10px 0; font-size: 12.5px;">
+                    Link bảo mật HTTPS hỗ trợ PiP luôn nổi trên mọi máy tính trong hoặc ngoài mạng.
+                  </p>
+                  <button class="astro-btn astro-btn-accent" id="btnOpenHttpsOnline" style="width: 100%; justify-content: center;">
+                    🌐 Bấm Để Mở Bằng Link HTTPS Online
+                  </button>
+                </div>
+
+                <div style="background: #2b2d30; border: 1px solid #3c3f41; border-radius: 6px; padding: 10px 14px;">
+                  <div style="margin-bottom: 4px; color: #bcbec4; font-weight: bold;">
+                    ⚙️ Cách 3: Bật quyền cho IP 192.168.1.82 trên Chrome (10 giây)
+                  </div>
+                  <ol style="margin: 0; padding-left: 20px; font-size: 12px; color: #9da0a8;">
+                    <li>Mở tab mới trên Chrome: <code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code></li>
+                    <li>Dán: <code>http://192.168.1.82</code></li>
+                    <li>Chọn <strong>Enabled</strong> rồi bấm <strong>Relaunch</strong>.</li>
+                  </ol>
+                </div>
+              </div>
+              <div class="modal-dialog-footer" style="justify-content: space-between;">
+                <button class="astro-btn astro-btn-secondary" id="btnOpenNormalPopupFallback">
+                  Vẫn mở cửa sổ thường (Popup 2 màn hình)
+                </button>
+                <button class="astro-btn astro-btn-secondary" id="btnCancelPipYoutubeModal">Đóng</button>
+              </div>
+            </div>
+          </div>
+
           <!-- MODAL HƯỚNG DẪN MỞ POPUP NẾU TRÌNH DUYỆT CHẶN -->
           <div class="astro-modal-backdrop" id="modalPopupBlockedBackdrop" style="display: none; z-index: 9999;">
             <div class="astro-modal-dialog" style="max-width: 540px;">
@@ -646,7 +705,7 @@
               <button class="pip-btn pip-btn-size" data-target="astro" data-size="S" title="Cỡ nhỏ (320x240)">S</button>
               <button class="pip-btn pip-btn-size" data-target="astro" data-size="M" title="Cỡ vừa (440x330)">M</button>
               <button class="pip-btn pip-btn-size" data-target="astro" data-size="L" title="Cỡ lớn (580x435)">L</button>
-              <button class="pip-btn pip-btn-popout" data-target="astro" title="Mở cửa sổ riêng (Popup) - Kéo sang màn hình thứ 2 chơi trực tiếp">↗ Màn Khác</button>
+              <button class="pip-btn pip-btn-popout" data-target="astro" title="Đưa ra cửa sổ PiP luôn nổi trên mọi ứng dụng (YouTube, Game,...)">📌 Nổi Trên YouTube</button>
               <button class="pip-btn pip-btn-restore" id="btnAstroPipRestore" title="Phóng to lại màn hình chính">🗖</button>
               <button class="pip-btn pip-btn-close" id="btnAstroPipClose" title="Ẩn về code Java (Boss Key)">✕</button>
             </div>
@@ -660,8 +719,8 @@
           <div class="astro-floating-hud">
             <button class="hud-btn hud-mode-btn" id="btnAstroLobbyToggle" title="Mở Sảnh Chọn Phòng / Sảnh Chờ">🛸 Sảnh Phòng</button>
             <button class="hud-btn hud-mode-btn" id="btnAstroViewMode" title="Chuyển chế độ: Chia Đôi (Split 50:50) | Toàn Màn Hình | Góc Nhỏ (Mini)">⊞ Chia Đôi: 50/50</button>
-            <button class="hud-btn hud-mode-btn" id="btnAstroPip" title="Thu nhỏ Picture-in-Picture góc màn hình giống YouTube">📺 PiP (Thu Nhỏ)</button>
-            <button class="hud-btn hud-mode-btn" id="btnAstroPopoutDirect" title="Mở cửa sổ riêng để kéo sang màn hình thứ 2 chơi trực tiếp">↗ Màn Khác (Popup)</button>
+            <button class="hud-btn hud-mode-btn" id="btnAstroPip" title="Thu nhỏ game góc dưới màn hình code IDE">📺 PiP Trong IDE</button>
+            <button class="hud-btn hud-mode-btn" id="btnAstroPopoutDirect" title="Mở cửa sổ PiP luôn nổi trên cùng (Always-on-Top) để vừa xem YouTube vừa chơi!">📌 PiP Nổi Trên YouTube</button>
             <button class="hud-btn" id="btnAstroZoom" title="Thu phóng Game (Ctrl + Cuộn chuột hoặc phím [ / ]): 50% | 70% | 85% | 100% | Auto Fit">🔍 Zoom: Fit</button>
             <button class="hud-btn" id="btnAstroBackLounge" style="display:none;" title="Tạm dừng trận chiến và về phòng chờ">🚪 Về Sảnh Chờ</button>
             <button class="hud-btn hud-mode-btn" id="btnAstroMap" title="Chọn Bản Đồ Chiến Đấu">🗺️ Map: Cổ Điển ▾</button>
@@ -881,7 +940,7 @@
               <button class="pip-btn pip-btn-size" data-target="bvn" data-size="S" title="Cỡ nhỏ (360x240)">S</button>
               <button class="pip-btn pip-btn-size" data-target="bvn" data-size="M" title="Cỡ vừa (480x320)">M</button>
               <button class="pip-btn pip-btn-size" data-target="bvn" data-size="L" title="Cỡ lớn (600x400)">L</button>
-              <button class="pip-btn pip-btn-popout" data-target="bvn" title="Mở cửa sổ riêng (Popup) - Kéo sang màn hình thứ 2 chơi trực tiếp">↗ Màn Khác</button>
+              <button class="pip-btn pip-btn-popout" data-target="bvn" title="Đưa ra cửa sổ PiP luôn nổi trên mọi ứng dụng (YouTube, Game,...)">📌 Nổi Trên YouTube</button>
               <button class="pip-btn pip-btn-restore" id="btnBvnPipRestore" title="Phóng to lại màn hình chính">🗖</button>
               <button class="pip-btn pip-btn-close" id="btnBvnPipClose" title="Ẩn về code Java (Boss Key)">✕</button>
             </div>
@@ -891,8 +950,8 @@
           <div class="bvn-floating-hud">
             <button class="hud-btn hud-mode-btn" id="btnBvnLobbyToggle" title="Mở Sảnh Chọn Phòng / Tạo Phòng Đấu Online">🛸 Sảnh Phòng BVN</button>
             <button class="hud-btn hud-mode-btn" id="btnBvnSplit" title="Chuyển chế độ: Chia Đôi 50/50 với code Java hoặc Tràn Cửa Sổ IDE">⊞ Chia Đôi: 50/50</button>
-            <button class="hud-btn hud-mode-btn" id="btnBvnPip" title="Thu nhỏ Picture-in-Picture góc màn hình giống YouTube">📺 PiP (Thu Nhỏ)</button>
-            <button class="hud-btn hud-mode-btn" id="btnBvnPopoutDirect" title="Mở cửa sổ riêng để kéo sang màn hình thứ 2 chơi trực tiếp">↗ Màn Khác (Popup)</button>
+            <button class="hud-btn hud-mode-btn" id="btnBvnPip" title="Thu nhỏ game góc dưới màn hình code IDE">📺 PiP Trong IDE</button>
+            <button class="hud-btn hud-mode-btn" id="btnBvnPopoutDirect" title="Mở cửa sổ PiP luôn nổi trên cùng (Always-on-Top) để vừa xem YouTube vừa chơi!">📌 PiP Nổi Trên YouTube</button>
             <button class="hud-btn hud-mode-btn" id="btnBvnFullscreen" title="Bật chế độ Toàn Màn Hình máy tính (Fullscreen F11)">⛶ Toàn Màn Hình</button>
             <div class="hud-pill" id="bvnHudRoomName">Phòng: 1 Máy (Offline)</div>
             <div class="hud-pill" id="bvnHudRole" style="color: #e5a440; font-weight: bold;">Bạn: Máy 1 (P1)</div>

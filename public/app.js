@@ -5071,7 +5071,7 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
       }
     }
     if (btnAstroPip) {
-      btnAstroPip.textContent = (astroViewMode === 'MINI') ? '🗖 Thoát PiP' : '📺 PiP (Thu Nhỏ)';
+      btnAstroPip.textContent = (astroViewMode === 'MINI') ? '🗖 Thoát PiP' : '📺 PiP Trong IDE';
       btnAstroPip.classList.toggle('hud-mode-btn', astroViewMode === 'MINI');
     }
     if (btnAstroZoom) {
@@ -5086,7 +5086,7 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
       btnCaroSplit.classList.toggle('hud-mode-btn', caroViewMode === 'SPLIT');
     }
     if (btnCaroPip) {
-      btnCaroPip.textContent = (caroViewMode === 'MINI') ? '🗖 Thoát PiP' : '📺 PiP (Thu Nhỏ)';
+      btnCaroPip.textContent = (caroViewMode === 'MINI') ? '🗖 Thoát PiP' : '📺 PiP Trong IDE';
       btnCaroPip.classList.toggle('hud-mode-btn', caroViewMode === 'MINI');
     }
   }
@@ -5249,6 +5249,61 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   let activePopoutPlaceholder = null;
   let popoutClosedCheckInterval = null;
 
+  // PiP YouTube Always-on-top Guide Modal Handlers
+  const modalPipYoutubeBackdrop = document.getElementById('modalPipYoutubeBackdrop');
+  const btnClosePipYoutubeModal = document.getElementById('btnClosePipYoutubeModal');
+  const btnCancelPipYoutubeModal = document.getElementById('btnCancelPipYoutubeModal');
+  const btnSwitchToLocalhost = document.getElementById('btnSwitchToLocalhost');
+  const btnOpenHttpsOnline = document.getElementById('btnOpenHttpsOnline');
+  const btnOpenNormalPopupFallback = document.getElementById('btnOpenNormalPopupFallback');
+
+  function showPipYoutubeModal(targetGame = 'caro') {
+    pendingPopoutTarget = targetGame;
+    if (modalPipYoutubeBackdrop) {
+      modalPipYoutubeBackdrop.style.display = 'flex';
+    }
+  }
+
+  function closePipYoutubeModal() {
+    if (modalPipYoutubeBackdrop) {
+      modalPipYoutubeBackdrop.style.display = 'none';
+    }
+  }
+
+  if (btnClosePipYoutubeModal) btnClosePipYoutubeModal.addEventListener('click', closePipYoutubeModal);
+  if (btnCancelPipYoutubeModal) btnCancelPipYoutubeModal.addEventListener('click', closePipYoutubeModal);
+
+  if (btnSwitchToLocalhost) {
+    btnSwitchToLocalhost.addEventListener('click', () => {
+      const port = window.location.port;
+      const portPart = (port && port !== '80' && port !== '443') ? `:${port}` : '';
+      window.location.href = `http://localhost${portPart}${window.location.pathname}${window.location.search}`;
+    });
+  }
+
+  if (btnOpenHttpsOnline) {
+    btnOpenHttpsOnline.addEventListener('click', async () => {
+      try {
+        const res = await fetch('/api/server-info');
+        const data = await res.json();
+        if (data.onlineUrl) {
+          window.open(data.onlineUrl, '_blank');
+        } else {
+          showToastNotification('Online Link', 'Đang tạo link HTTPS, vui lòng thử lại sau 2 giây...');
+        }
+      } catch (err) {
+        showToastNotification('Lỗi', 'Không thể lấy link HTTPS online.');
+      }
+    });
+  }
+
+  if (btnOpenNormalPopupFallback) {
+    btnOpenNormalPopupFallback.addEventListener('click', () => {
+      closePipYoutubeModal();
+      toggleInteractivePopout(pendingPopoutTarget, 'force-popup');
+    });
+  }
+
   // Popup Blocked Guide Modal Handlers
   const modalPopupBlockedBackdrop = document.getElementById('modalPopupBlockedBackdrop');
   const btnClosePopupBlockedModal = document.getElementById('btnClosePopupBlockedModal');
@@ -5288,22 +5343,26 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
     let container = null;
     let onResize = null;
     let title = '';
-    let defaultW = 760;
-    let defaultH = 560;
+    let defaultW = 500;
+    let defaultH = 400;
 
     if (targetGame === 'caro') {
       container = caroBoardView;
       title = 'easyposbackend – SecurityFilterChainService.java (Cờ Caro XO)';
+      defaultW = 500;
+      defaultH = 400;
       onResize = () => { resizeCanvas(); centerBoard(false, true); };
     } else if (targetGame === 'astro') {
       container = astroBoardView;
       title = 'easyposbackend – JwtSecurityFilter.java (Astro Battle)';
+      defaultW = 520;
+      defaultH = 400;
       onResize = () => resizeAstroCanvas();
     } else if (targetGame === 'bvn') {
       container = bvnBoardView;
       title = 'easyposbackend – SecurityConfiguration.java (Bleach vs Naruto 3.3)';
-      defaultW = 860;
-      defaultH = 580;
+      defaultW = 600;
+      defaultH = 420;
     }
     if (!container) return;
 
@@ -5320,7 +5379,7 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
 
     // PRIORITY 1: Try Document Picture-in-Picture (Always-On-Top native OS window)
     // Only available in Secure Contexts (HTTPS, localhost, or Chrome flag enabled)
-    if (preferredMode !== 'popup' && ('documentPictureInPicture' in window && window.isSecureContext)) {
+    if (preferredMode !== 'force-popup' && ('documentPictureInPicture' in window && window.isSecureContext)) {
       try {
         const pipWin = await window.documentPictureInPicture.requestWindow({
           width: defaultW,
@@ -5331,6 +5390,13 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
       } catch (err) {
         console.warn('Document Picture-in-Picture request failed, opening standalone popup instead:', err);
       }
+    }
+
+    // If Document PiP cannot be opened because of insecure context (HTTP LAN IP like http://192.168.1.82)
+    // Show the friendly YouTube PiP guide modal so user knows how to get the Always-on-top window!
+    if (!window.isSecureContext && preferredMode !== 'force-popup') {
+      showPipYoutubeModal(targetGame);
+      return;
     }
 
     // PRIORITY 2: Universal Fallback via window.open (Works on HTTP LAN 192.168.x.x, all browsers)
@@ -5538,6 +5604,7 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
     if (targetGame === 'caro') {
       popWin.addEventListener('mousemove', handleCaroMouseMove);
       popWin.addEventListener('mouseup', handleCaroMouseUp);
+      popWin.addEventListener('wheel', handleCaroWheel, { passive: false });
     }
 
     // Attach Astro keys inside popWin
@@ -5597,9 +5664,9 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
       if (onResize) onResize();
     }, 150);
 
-    const modeText = isDocPip ? '📺 PiP Luôn Nổi (Always on Top)' : '↗ Cửa Sổ Rời (Màn Hình 2)';
+    const modeText = isDocPip ? '📌 PiP Nổi Trên Cùng (Always on Top)' : '↗ Cửa Sổ Rời (Màn Hình 2)';
     const modeDesc = isDocPip
-      ? 'Đã mở cửa sổ PiP nổi trên cùng! Khi anh bật code hay tab sang app khác, game luôn hiển thị ở trên.'
+      ? 'Đã mở cửa sổ PiP luôn nổi! Khi anh chuyển sang xem YouTube hay làm việc khác, bàn cờ luôn nổi đè lên trên.'
       : 'Đã mở game ở cửa sổ riêng! Bạn có thể kéo sang màn hình thứ 2 hoặc để cạnh code để chơi trực tiếp.';
     showToastNotification(modeText, modeDesc);
   }
@@ -6208,7 +6275,7 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
       btnBvnSplit.textContent = (bvnViewMode === 'SPLIT') ? '⊞ Chia Đôi: 50/50' : '🗖 Tràn Cửa Sổ IDE';
     }
     if (btnBvnPip) {
-      btnBvnPip.textContent = (bvnViewMode === 'MINI') ? '🗖 Thoát PiP' : '📺 PiP (Thu Nhỏ)';
+      btnBvnPip.textContent = (bvnViewMode === 'MINI') ? '🗖 Thoát PiP' : '📺 PiP Trong IDE';
       btnBvnPip.classList.toggle('hud-mode-btn', bvnViewMode === 'MINI');
     }
     if (bvnHudRoomName) {
