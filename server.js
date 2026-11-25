@@ -17,7 +17,13 @@ wss.on('error', (err) => {
 let currentPort = Number(process.env.PORT || 80);
 
 // Serve static frontend
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+}));
 app.use('/bleach-vs-naruto-3.3', express.static(path.join(__dirname, 'bleach-vs-naruto-3.3'), {
   setHeaders: (res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');

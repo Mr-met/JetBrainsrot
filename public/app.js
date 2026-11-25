@@ -5111,18 +5111,32 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   if (btnAstroPip) {
     btnAstroPip.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (activePopoutWindow && !activePopoutWindow.closed) {
+        try { activePopoutWindow.close(); } catch (_) {}
+        return;
+      }
       if (astroViewMode === 'MINI' || (isPipActive && activePipGame === 'astro')) {
         astroViewMode = 'FULL';
         isPipActive = false;
         activePipGame = null;
         clearMiniInlineStyles(astroBoardView);
         showToastNotification('Picture-in-Picture', 'Đã thoát chế độ PiP (Mở rộng toàn màn hình).');
-      } else {
-        astroViewMode = 'MINI';
-        isPipActive = true;
-        activePipGame = 'astro';
-        showToastNotification('PiP Thu Nhỏ', 'Đã bật PiP nổi đè lên trên code! Kéo thả hoặc chuyển tab code thoải mái.');
+        updateAstroViewUI();
+        renderEditorContent(activeFileName);
+        return;
       }
+      if ('documentPictureInPicture' in window && window.isSecureContext) {
+        toggleInteractivePopout('astro');
+        return;
+      }
+      if (!window.isSecureContext) {
+        showPipYoutubeModal('astro');
+        return;
+      }
+      astroViewMode = 'MINI';
+      isPipActive = true;
+      activePipGame = 'astro';
+      showToastNotification('PiP Thu Nhỏ', 'Đã bật PiP nổi đè lên trên code! Kéo thả hoặc chuyển tab code thoải mái.');
       updateAstroViewUI();
       renderEditorContent(activeFileName);
       setTimeout(() => {
@@ -5191,18 +5205,32 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   if (btnCaroPip) {
     btnCaroPip.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (activePopoutWindow && !activePopoutWindow.closed) {
+        try { activePopoutWindow.close(); } catch (_) {}
+        return;
+      }
       if (caroViewMode === 'MINI' || (isPipActive && activePipGame === 'caro')) {
         caroViewMode = 'FULL';
         isPipActive = false;
         activePipGame = null;
         clearMiniInlineStyles(caroBoardView);
         showToastNotification('Picture-in-Picture', 'Đã thoát chế độ PiP (Mở rộng toàn màn hình).');
-      } else {
-        caroViewMode = 'MINI';
-        isPipActive = true;
-        activePipGame = 'caro';
-        showToastNotification('PiP Thu Nhỏ', 'Đã bật cửa sổ PiP nổi đè lên trên code! Kéo thả, chỉnh cỡ S/M/L hoặc chuyển tab file code thoải mái.');
+        updateAstroViewUI();
+        renderEditorContent(activeFileName);
+        return;
       }
+      if ('documentPictureInPicture' in window && window.isSecureContext) {
+        toggleInteractivePopout('caro');
+        return;
+      }
+      if (!window.isSecureContext) {
+        showPipYoutubeModal('caro');
+        return;
+      }
+      caroViewMode = 'MINI';
+      isPipActive = true;
+      activePipGame = 'caro';
+      showToastNotification('PiP Thu Nhỏ', 'Đã bật cửa sổ PiP nổi đè lên trên code! Kéo thả, chỉnh cỡ S/M/L hoặc chuyển tab file code thoải mái.');
       updateAstroViewUI();
       renderEditorContent(activeFileName);
       setTimeout(() => {
@@ -5301,6 +5329,34 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
     btnOpenNormalPopupFallback.addEventListener('click', () => {
       closePipYoutubeModal();
       toggleInteractivePopout(pendingPopoutTarget, 'force-popup');
+    });
+  }
+
+  const btnOpenInPagePipFallback = document.getElementById('btnOpenInPagePipFallback');
+  if (btnOpenInPagePipFallback) {
+    btnOpenInPagePipFallback.addEventListener('click', () => {
+      closePipYoutubeModal();
+      if (pendingPopoutTarget === 'caro') {
+        caroViewMode = 'MINI';
+        isPipActive = true;
+        activePipGame = 'caro';
+        updateAstroViewUI();
+        renderEditorContent(activeFileName);
+        setTimeout(() => { resizeCanvas(); centerBoard(false, true); }, 50);
+      } else if (pendingPopoutTarget === 'astro') {
+        astroViewMode = 'MINI';
+        isPipActive = true;
+        activePipGame = 'astro';
+        updateAstroViewUI();
+        renderEditorContent(activeFileName);
+        setTimeout(() => { resizeAstroCanvas(); }, 50);
+      } else if (pendingPopoutTarget === 'bvn') {
+        bvnViewMode = 'MINI';
+        isPipActive = true;
+        activePipGame = 'bvn';
+        if (typeof updateBvnViewUI === 'function') updateBvnViewUI();
+        renderEditorContent(activeFileName);
+      }
     });
   }
 
@@ -6645,18 +6701,32 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
   if (btnBvnPip) {
     btnBvnPip.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (activePopoutWindow && !activePopoutWindow.closed) {
+        try { activePopoutWindow.close(); } catch (_) {}
+        return;
+      }
       if (bvnViewMode === 'MINI' || (isPipActive && activePipGame === 'bvn')) {
         bvnViewMode = 'FULL';
         isPipActive = false;
         activePipGame = null;
         clearMiniInlineStyles(bvnBoardView);
         showToastNotification('Picture-in-Picture', 'Đã thoát chế độ PiP (Mở rộng toàn màn hình).');
-      } else {
-        bvnViewMode = 'MINI';
-        isPipActive = true;
-        activePipGame = 'bvn';
-        showToastNotification('PiP Thu Nhỏ', 'Đã bật PiP nổi đè lên trên code! Kéo thả hoặc chuyển tab code thoải mái.');
+        if (typeof updateBvnViewUI === 'function') updateBvnViewUI();
+        renderEditorContent(activeFileName);
+        return;
       }
+      if ('documentPictureInPicture' in window && window.isSecureContext) {
+        toggleInteractivePopout('bvn');
+        return;
+      }
+      if (!window.isSecureContext) {
+        showPipYoutubeModal('bvn');
+        return;
+      }
+      bvnViewMode = 'MINI';
+      isPipActive = true;
+      activePipGame = 'bvn';
+      showToastNotification('PiP Thu Nhỏ', 'Đã bật PiP nổi đè lên trên code! Kéo thả hoặc chuyển tab code thoải mái.');
       if (typeof updateBvnViewUI === 'function') updateBvnViewUI();
       renderEditorContent(activeFileName);
     });
